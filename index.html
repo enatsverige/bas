@@ -2,49 +2,55 @@
 <html lang="sv">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Enat Sverige</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
     body {
       font-family: sans-serif;
+      padding: 2rem;
       background-color: #003578;
       color: #ffc200;
-      padding: 2rem;
-      text-align: center;
     }
     h1 {
       font-size: 2.5rem;
+      text-align: center;
       margin-bottom: 1rem;
     }
     h2 {
-      font-size: 1.2rem;
+      font-size: 1.25rem;
     }
     form {
-      margin: 1rem auto;
-      background: #004a99;
+      margin-bottom: 2rem;
       padding: 1rem;
+      background: #004a99;
       border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
       max-width: 400px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.2);
     }
     label {
       display: block;
-      text-align: left;
       margin-top: 1rem;
       font-weight: bold;
     }
+    .required-hint {
+      font-weight: normal;
+      font-size: 0.85rem;
+      color: #ccc;
+      margin-left: 0.4rem;
+    }
     input, select {
       width: 100%;
-      padding: 0.5rem;
-      margin-top: 0.25rem;
+      padding: 10px 12px; /* extra padding for text not sticking out */
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
       background-color: #ffc200;
       color: #003578;
-      border-radius: 6px;
-      border: 1px solid #ccc;
+      box-sizing: border-box; /* make sure padding included in width */
     }
     button {
-      margin-top: 1rem;
+      margin-top: 1.5rem;
       padding: 10px 20px;
       font-size: 1rem;
       border: none;
@@ -56,81 +62,113 @@
     button:hover {
       background-color: #417fd1;
     }
-    #message {
-      margin-top: 2rem;
-      font-size: 1.4rem;
+    #thank-you, #welcome-message, #account-info {
+      font-size: 1.5rem;
       font-weight: bold;
-    }
-    img {
-      max-width: 200px;
-      margin-bottom: 1rem;
+      margin-top: 2rem;
+      text-align: center;
     }
     .link {
-      font-size: 0.9rem;
       color: #ffc200;
       cursor: pointer;
       text-decoration: underline;
-      margin-top: 0.5rem;
+      font-size: 0.95rem;
+      display: block;
+      margin-top: 0.75rem;
+      text-align: center;
+    }
+    img {
+      display: block;
+      margin: 0 auto 1rem;
+      max-width: 200px;
+    }
+    #account-info {
+      margin-top: 1rem;
+      font-size: 1.1rem;
     }
   </style>
 </head>
 <body>
 
   <h1>ENAT SVERIGE</h1>
-  <img src="enat-sverige-logga.png" alt="Enat Sverige Logga"/>
+  <img src="enat-sverige-logga.png" alt="Enat Sverige Logga" />
 
+  <h2>Registrera</h2>
   <form id="register-form">
-    <h2>Registrera</h2>
-    <label>Email</label>
+    <label for="email">Email <span class="required-hint">(krävs)</span></label>
     <input type="email" id="reg-email" required />
-    <label>Lösenord</label>
+
+    <label for="password">Lösenord <span class="required-hint">(krävs)</span></label>
     <input type="password" id="reg-password" required />
-    <label>Användarnamn</label>
+
+    <label for="username">Användarnamn <span class="required-hint">(krävs)</span></label>
     <input type="text" id="username" required />
-    <label>Förnamn</label>
+
+    <label for="firstname">Förnamn <span class="required-hint">(krävs)</span></label>
     <input type="text" id="firstname" required />
-    <label>Hur fick du reda på oss?</label>
+
+    <label for="referral">Hur fick du reda på oss?</label>
     <select id="referral">
-      <option value="">Välj ett alternativ</option>
+      <option value="">Välj en</option>
       <option>Sociala Medier</option>
       <option>Telegram</option>
-      <option>Kompis/Familj</option>
+      <option>Representanter</option>
+      <option>Kompisar eller Familj</option>
       <option>Annat</option>
     </select>
+
     <button type="submit">Registrera</button>
   </form>
 
+  <h2>Logga in</h2>
   <form id="login-form">
-    <h2>Logga in</h2>
-    <label>Email</label>
+    <label for="login-email">Email <span class="required-hint">(krävs)</span></label>
     <input type="email" id="login-email" required />
-    <label>Lösenord</label>
+
+    <label for="login-password">Lösenord <span class="required-hint">(krävs)</span></label>
     <input type="password" id="login-password" required />
+
     <button type="submit">Logga in</button>
     <div class="link" onclick="forgotPassword()">Glömt lösenord?</div>
   </form>
 
-  <div id="message" style="display:none;"></div>
-
-  <form id="update-form" style="display:none;">
-    <h2>Uppdatera din information</h2>
-    <label>Ny email</label>
-    <input type="email" id="new-email"/>
-    <label>Nytt användarnamn</label>
-    <input type="text" id="new-username"/>
-    <button type="submit">Uppdatera</button>
-  </form>
+  <div id="thank-you"></div>
+  <div id="welcome-message"></div>
+  <div id="account-info"></div>
 
   <script>
-    const supabase = window.supabase.createClient(
+    const supabase = supabase.createClient(
       'https://jtbcqgjkvzgcjobfbtad.supabase.co',
-      'public-anon-key'
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0YmNxZ2prdnpnY2pvYmZidGFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1MzU0NTksImV4cCI6MjA2OTExMTQ1OX0.ogacm-3bmQI7WDgHZSI2r6jDOrDAGMfI7QtG0avYMTQ'
     );
 
     const registerForm = document.getElementById('register-form');
     const loginForm = document.getElementById('login-form');
-    const updateForm = document.getElementById('update-form');
-    const messageBox = document.getElementById('message');
+    const thankYouMessage = document.getElementById('thank-you');
+    const welcomeMessage = document.getElementById('welcome-message');
+    const accountInfo = document.getElementById('account-info');
+
+    let liveTimerInterval;
+
+    // Helper: format duration as D d HH:mm:ss
+    function formatDuration(ms) {
+      const totalSeconds = Math.floor(ms / 1000);
+      const days = Math.floor(totalSeconds / 86400);
+      const hours = Math.floor((totalSeconds % 86400) / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+      return `${days} d ${String(hours).padStart(2,'0')}:${String(minutes).padStart(2,'0')}:${String(seconds).padStart(2,'0')}`;
+    }
+
+    function startLiveTimer(createdAt) {
+      if(liveTimerInterval) clearInterval(liveTimerInterval);
+      liveTimerInterval = setInterval(() => {
+        const now = new Date();
+        const created = new Date(createdAt);
+        const diff = now - created;
+        accountInfo.textContent = `Konto skapat: ${created.toLocaleString()} | Kontot har funnits i: ${formatDuration(diff)}`;
+      }, 1000);
+    }
 
     registerForm.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -140,31 +178,41 @@
       const firstname = document.getElementById('firstname').value;
       const referral = document.getElementById('referral').value;
 
-      const { data, error } = await supabase.auth.signUp({ email, password });
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password
+      });
 
-      if (error || !data?.user?.id) {
-        alert('Fel: ' + (error?.message || "Kunde inte skapa konto"));
+      if (error) {
+        alert('Fel: ' + error.message);
         return;
       }
 
-      const userId = data.user.id;
+      const user = data.user;
 
-      const { error: insertError } = await supabase.from('Profiles').insert([{
-        id: userId,
-        username,
-        firstname,
-        referral
-      }]);
+      const { error: insertError } = await supabase.from('Profiles').insert([
+        {
+          id: user.id,
+          username,
+          firstname,
+          referral,
+          created_at: new Date().toISOString()
+        }
+      ]);
 
       if (insertError) {
-        alert('Kunde inte spara profil: ' + insertError.message);
+        alert('Fel vid sparande av profil: ' + insertError.message);
         return;
       }
 
       registerForm.style.display = 'none';
       loginForm.style.display = 'none';
-      updateForm.style.display = 'block';
-      showWelcome(userId, firstname);
+      thankYouMessage.style.display = 'none';
+
+      welcomeMessage.textContent = `Tack för din registrering, ${firstname}!`;
+      welcomeMessage.style.display = 'block';
+
+      startLiveTimer(new Date());
     });
 
     loginForm.addEventListener('submit', async (e) => {
@@ -172,78 +220,42 @@
       const email = document.getElementById('login-email').value;
       const password = document.getElementById('login-password').value;
 
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error, data } = await supabase.auth.signInWithPassword({ email, password });
 
-      if (error || !data?.user?.id) {
-        alert('Fel: ' + (error?.message || "Inloggning misslyckades"));
+      if (error) {
+        alert('Fel vid inloggning: ' + error.message);
         return;
       }
 
-      const userId = data.user.id;
-      const { data: profile } = await supabase
+      const user = data.user;
+
+      const { data: profileData, error: profileError } = await supabase
         .from('Profiles')
-        .select('firstname')
-        .eq('id', userId)
+        .select('username, firstname, created_at')
+        .eq('id', user.id)
         .single();
 
-      loginForm.style.display = 'none';
-      registerForm.style.display = 'none';
-      updateForm.style.display = 'block';
-      showWelcome(userId, profile.firstname);
-    });
-
-    function showWelcome(userId, firstname) {
-      messageBox.style.display = 'block';
-      let startTime;
-
-      supabase.auth.getUser().then(({ data }) => {
-        const createdAt = new Date(data.user.created_at);
-        startTime = createdAt;
-
-        messageBox.innerHTML = `
-          <div>Välkommen, <strong>${firstname}</strong>!</div>
-          <div>Konto skapades: ${createdAt.toLocaleString()}</div>
-          <div>Tid sedan skapande: <span id="timer"></span></div>
-        `;
-
-        setInterval(() => {
-          const diff = new Date() - startTime;
-          const seconds = Math.floor(diff / 1000) % 60;
-          const minutes = Math.floor(diff / 60000) % 60;
-          const hours = Math.floor(diff / 3600000);
-          document.getElementById('timer').textContent = `${hours}h ${minutes}m ${seconds}s`;
-        }, 1000);
-      });
-    }
-
-    updateForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const newEmail = document.getElementById('new-email').value;
-      const newUsername = document.getElementById('new-username').value;
-
-      const {
-        data: { user },
-        error
-      } = await supabase.auth.getUser();
-
-      if (error || !user) {
-        alert('Fel: kunde inte hämta användare');
+      if (profileError) {
+        alert('Inloggning lyckades, men kunde inte hämta profilinfo!');
         return;
       }
 
-      if (newEmail) {
-        await supabase.auth.updateUser({ email: newEmail });
-      }
+      registerForm.style.display = 'none';
+      loginForm.style.display = 'none';
+      thankYouMessage.style.display = 'none';
 
-      if (newUsername) {
-        await supabase.from('Profiles').update({ username: newUsername }).eq('id', user.id);
-      }
+      welcomeMessage.textContent = `Välkommen tillbaka, ${profileData.firstname}!`;
+      welcomeMessage.style.fontSize = '2rem';
+      welcomeMessage.style.display = 'block';
 
-      alert('Dina uppgifter har uppdaterats!');
+      startLiveTimer(profileData.created_at);
+
+      // Visa användarnamn också
+      accountInfo.textContent = `Användarnamn: ${profileData.username}`;
     });
 
     function forgotPassword() {
-      const email = prompt("Ange din email för återställning:");
+      const email = prompt("Ange din email för återställning av lösenord:");
       if (!email) return;
 
       supabase.auth.resetPasswordForEmail(email, {
@@ -252,7 +264,7 @@
         if (error) {
           alert('Fel: ' + error.message);
         } else {
-          alert('Mail skickat till ' + email);
+          alert('Ett mail har skickats till ' + email);
         }
       });
     }
