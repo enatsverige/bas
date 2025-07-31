@@ -40,13 +40,14 @@
       margin-left: 0.4rem;
     }
     input, select {
-      width: calc(100% - 16px);
+      width: 100%;
       padding: 8px;
       font-size: 1rem;
       border: 1px solid #ccc;
       border-radius: 6px;
       background-color: #ffc200;
       color: #003578;
+      box-sizing: border-box;
     }
     button {
       margin-top: 1.5rem;
@@ -62,7 +63,8 @@
       background-color: #417fd1;
     }
     #message {
-      font-size: 1.5rem;
+      display: none;
+      font-size: 1.4rem;
       font-weight: bold;
       margin-top: 2rem;
     }
@@ -82,7 +84,6 @@
   </style>
 </head>
 <body>
-
   <h1>ENAT SVERIGE</h1>
   <img src="enat-sverige-logga.png" alt="Enat Sverige Logga">
 
@@ -109,7 +110,6 @@
       <option>Kompisar eller Familj</option>
       <option>Annat</option>
     </select>
-
     <button type="submit">Registrera</button>
   </form>
 
@@ -128,7 +128,7 @@
   <div id="message"></div>
 
   <script>
-    const supabase = window.supabase.createClient(
+    const supabase = supabase.createClient(
       'https://jtbcqgjkvzgcjobfbtad.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0YmNxZ2prdnpnY2pvYmZidGFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1MzU0NTksImV4cCI6MjA2OTExMTQ1OX0.ogacm-3bmQI7WDgHZSI2r6jDOrDAGMfI7QtG0avYMTQ'
     );
@@ -137,44 +137,11 @@
     const loginForm = document.getElementById('login-form');
     const messageDiv = document.getElementById('message');
 
-    function showAccountInfo(profile, createdAt) {
-      const created = new Date(createdAt);
-      const createdText = created.toLocaleString('sv-SE');
-      const startTime = Date.now();
-      const accountTime = new Date(created).getTime();
-
-      function updateTimer() {
-        const now = Date.now();
-        const diff = now - accountTime;
-        const seconds = Math.floor(diff / 1000) % 60;
-        const minutes = Math.floor(diff / 1000 / 60) % 60;
-        const hours = Math.floor(diff / 1000 / 60 / 60) % 24;
-        const days = Math.floor(diff / 1000 / 60 / 60 / 24);
-
-        messageDiv.innerHTML = `
-          <div>
-            <p style="font-size: 1.8rem; font-weight: bold;">Välkommen tillbaka, ${profile.firstname}!</p>
-            <p>Användarnamn: ${profile.username}</p>
-            <p>Kontot skapades: ${createdText}</p>
-            <p>Kontot har funnits i: ${days} dagar, ${hours} timmar, ${minutes} min, ${seconds} sekunder</p>
-            <p>Vill du ändra din info?</p>
-            <label>Email:</label><input id="new-email" value="${profile.email}" type="email"><br>
-            <label>Användarnamn:</label><input id="new-username" value="${profile.username}" type="text"><br>
-            <button onclick="updateProfile()">Uppdatera</button>
-          </div>
-        `;
-      }
-      updateTimer();
-      setInterval(updateTimer, 1000);
-    }
-
-    async function updateProfile() {
-      const user = (await supabase.auth.getUser()).data.user;
-      const newEmail = document.getElementById('new-email').value;
-      const newUsername = document.getElementById('new-username').value;
-      await supabase.auth.updateUser({ email: newEmail });
-      await supabase.from('Profiles').update({ username: newUsername }).eq('id', user.id);
-      alert('Profil uppdaterad! Ladda om sidan för att se ändringar.');
+    function showMessage(msg) {
+      messageDiv.textContent = msg;
+      messageDiv.style.display = 'block';
+      registerForm.style.display = 'none';
+      loginForm.style.display = 'none';
     }
 
     registerForm.addEventListener('submit', async (e) => {
@@ -186,30 +153,68 @@
       const referral = document.getElementById('referral').value;
 
       const { data, error } = await supabase.auth.signUp({ email, password });
-      if (error) return alert('Fel: ' + error.message);
+
+      if (error) {
+        alert('Fel: ' + error.message);
+        return;
+      }
 
       const user = data.user;
-      await supabase.from('Profiles').insert([{ id: user.id, email, username, firstname, referral }]);
+      if (!user) {
+        alert('Registrering misslyckades. Ingen användare skapades.');
+        return;
+      }
 
-      registerForm.style.display = 'none';
-      loginForm.style.display = 'none';
-      showAccountInfo({ username, firstname, email }, new Date().toISOString());
+      await supabase.from('Profiles').insert({
+        id: user.id,
+        username,
+        firstname,
+        referral
+      });
+
+      showMessage(`Tack för din registrering, ${firstname}!`);
     });
 
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const email = document.getElementById('login-email').value;
       const password = document.getElementById('login-password').value;
+
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) return alert('Fel vid inloggning: ' + error.message);
 
-      const user = (await supabase.auth.getUser()).data.user;
-      const { data: profile, error: err } = await supabase.from('Profiles').select('*').eq('id', user.id).single();
+      if (error) {
+        alert('Fel vid inloggning: ' + error.message);
+        return;
+      }
 
-      if (err) return alert('Profilen kunde inte hämtas.');
-      registerForm.style.display = 'none';
-      loginForm.style.display = 'none';
-      showAccountInfo({ ...profile, email }, user.created_at);
+      const user = data.user;
+      if (!user) {
+        alert('Inloggning misslyckades.');
+        return;
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from('Profiles')
+        .select('firstname, created_at, username')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError) {
+        showMessage('Inloggning lyckades, men kunde inte hämta profildata.');
+      } else {
+        const created = new Date(profile.created_at);
+        const updateLiveTimer = () => {
+          const now = new Date();
+          const diff = now - created;
+          const seconds = Math.floor(diff / 1000) % 60;
+          const minutes = Math.floor(diff / (1000 * 60)) % 60;
+          const hours = Math.floor(diff / (1000 * 60 * 60));
+          document.getElementById('message').textContent = `Välkommen tillbaka, ${profile.firstname}!\nAnvändarnamn: ${profile.username}\nKonto skapat: ${created.toLocaleString()}\nTid sedan skapande: ${hours}h ${minutes}m ${seconds}s`;
+        }
+        showMessage('');
+        updateLiveTimer();
+        setInterval(updateLiveTimer, 1000);
+      }
     });
 
     function forgotPassword() {
@@ -219,8 +224,11 @@
       supabase.auth.resetPasswordForEmail(email, {
         redirectTo: window.location.href
       }).then(({ error }) => {
-        if (error) alert('Fel: ' + error.message);
-        else alert('Ett mail har skickats till ' + email);
+        if (error) {
+          alert('Fel: ' + error.message);
+        } else {
+          alert('Ett mail har skickats till ' + email);
+        }
       });
     }
   </script>
