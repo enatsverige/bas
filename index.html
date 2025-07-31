@@ -13,13 +13,8 @@
       padding: 2rem;
       text-align: center;
     }
-    h1 {
-      font-size: 2.5rem;
-      margin-bottom: 1rem;
-    }
-    h2 {
-      font-size: 1.2rem;
-    }
+    h1 { font-size: 2.5rem; margin-bottom: 1rem; }
+    h2 { font-size: 1.2rem; }
     form {
       margin: 1rem auto;
       background: #004a99;
@@ -140,9 +135,13 @@
       const firstname = document.getElementById('firstname').value;
       const referral = document.getElementById('referral').value;
 
-      const { data, error } = await supabase.auth.signUp({ email, password });
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo: window.location.href }
+      });
 
-      if (error || !data?.user?.id) {
+      if (error || !data.user) {
         alert('Fel: ' + (error?.message || "Kunde inte skapa konto"));
         return;
       }
@@ -174,8 +173,8 @@
 
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
-      if (error || !data?.user?.id) {
-        alert('Fel: ' + (error?.message || "Inloggning misslyckades"));
+      if (error || !data.user) {
+        alert('Fel vid inloggning: ' + (error?.message || "Inloggning misslyckades"));
         return;
       }
 
@@ -189,7 +188,7 @@
       loginForm.style.display = 'none';
       registerForm.style.display = 'none';
       updateForm.style.display = 'block';
-      showWelcome(userId, profile.firstname);
+      showWelcome(userId, profile?.firstname || "Okänd");
     });
 
     function showWelcome(userId, firstname) {
@@ -221,10 +220,7 @@
       const newEmail = document.getElementById('new-email').value;
       const newUsername = document.getElementById('new-username').value;
 
-      const {
-        data: { user },
-        error
-      } = await supabase.auth.getUser();
+      const { data: { user }, error } = await supabase.auth.getUser();
 
       if (error || !user) {
         alert('Fel: kunde inte hämta användare');
