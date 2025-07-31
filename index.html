@@ -1,52 +1,42 @@
 <!DOCTYPE html>
 <html lang="sv">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login / Register</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
     body {
       font-family: sans-serif;
       padding: 2rem;
-      background-color: #003578;  /* deep blue background */
-      color: #ffc200;             /* yellow text */
-    }
-    h1 {
-      text-align: center;
-      font-size: 3rem;
-      margin-bottom: 0;
+      background-color: #003578;
       color: #ffc200;
     }
-    .logo {
-      display: block;
-      margin: 1rem auto 2rem auto;
-      max-width: 200px;
-      height: auto;
+    h1 {
+      font-size: 2rem;
+      text-align: center;
+      margin-bottom: 1rem;
     }
     h2 {
       font-size: 1.25rem;
-      color: #ffc200;
     }
     form {
       margin-bottom: 2rem;
       padding: 1rem;
-      background: #002a5c; /* a bit darker blue behind forms */
+      background: #004a99;
       border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
       max-width: 400px;
-      color: #ffc200;
     }
     label {
       display: block;
       margin-top: 1rem;
       font-weight: bold;
-      color: #ffc200;
     }
     .required-hint {
       font-weight: normal;
       font-size: 0.85rem;
-      color: #e6d746; /* lighter yellow for hints */
+      color: #ccc;
       margin-left: 0.4rem;
     }
     input, select {
@@ -55,29 +45,25 @@
       font-size: 1rem;
       border: 1px solid #ccc;
       border-radius: 6px;
-      color: #003578;
-      background-color: #ffc200;
     }
     button {
       margin-top: 1.5rem;
       padding: 10px 20px;
       font-size: 1rem;
       border: none;
-      background-color: #0059a6;  /* lighter blue for buttons */
-      color: #ffc200;
+      background-color: #0055b8;
+      color: white;
       border-radius: 25px;
       cursor: pointer;
     }
     button:hover {
-      background-color: #0071d1;  /* slightly lighter on hover */
+      background-color: #0066cc;
     }
     #thank-you {
       display: none;
       font-size: 1.2rem;
       font-weight: bold;
       margin-top: 2rem;
-      color: #ffc200;
-      text-align: center;
     }
     .link {
       color: #ffc200;
@@ -87,26 +73,31 @@
       display: block;
       margin-top: 0.75rem;
     }
+    img {
+      display: block;
+      margin: 0 auto 1rem;
+      max-width: 200px;
+    }
   </style>
 </head>
 <body>
 
   <h1>ENAT SVERIGE</h1>
-  <img src="enat-sverige-logga.png" alt="Enat Sverige Logo" class="logo" />
+  <img src="enat-sverige-logga.png" alt="Enat Sverige Logga">
 
   <h2>Registrera</h2>
   <form id="register-form">
     <label for="email">Email <span class="required-hint">(krävs)</span></label>
-    <input type="email" id="reg-email" required />
+    <input type="email" id="reg-email" required>
 
     <label for="password">Lösenord <span class="required-hint">(krävs)</span></label>
-    <input type="password" id="reg-password" required />
+    <input type="password" id="reg-password" required>
 
     <label for="username">Användarnamn <span class="required-hint">(krävs)</span></label>
-    <input type="text" id="username" required />
+    <input type="text" id="username" required>
 
     <label for="firstname">Förnamn <span class="required-hint">(krävs)</span></label>
-    <input type="text" id="firstname" required />
+    <input type="text" id="firstname" required>
 
     <label for="referral">Hur fick du reda på oss?</label>
     <select id="referral">
@@ -124,16 +115,16 @@
   <h2>Logga in</h2>
   <form id="login-form">
     <label for="login-email">Email <span class="required-hint">(krävs)</span></label>
-    <input type="email" id="login-email" required />
+    <input type="email" id="login-email" required>
 
     <label for="login-password">Lösenord <span class="required-hint">(krävs)</span></label>
-    <input type="password" id="login-password" required />
+    <input type="password" id="login-password" required>
 
     <button type="submit">Logga in</button>
     <div class="link" onclick="forgotPassword()">Glömt lösenord?</div>
   </form>
 
-  <div id="thank-you">Tack för din registrering!</div>
+  <div id="thank-you"></div>
 
   <script>
     const supabase = supabase.createClient(
@@ -155,7 +146,7 @@
 
       const { data, error } = await supabase.auth.signUp({
         email,
-        password,
+        password
       });
 
       if (error) {
@@ -167,8 +158,8 @@
             id: user.id,
             username,
             firstname,
-            referral,
-          },
+            referral
+          }
         ]);
         registerForm.style.display = 'none';
         thankYouMessage.textContent = `Tack för din registrering, ${firstname}!`;
@@ -185,26 +176,18 @@
       if (error) {
         alert('Fel vid inloggning: ' + error.message);
       } else {
-        alert('Välkommen tillbaka!');
-      }
-    });
+        const {
+          data: { user }
+        } = await supabase.auth.getUser();
 
-    function forgotPassword() {
-      const email = prompt('Ange din email för återställning av lösenord:');
-      if (!email) return;
+        const { data: profileData, error: profileError } = await supabase
+          .from('Profiles')
+          .select('username')
+          .eq('id', user.id)
+          .single();
 
-      supabase.auth
-        .resetPasswordForEmail(email, {
-          redirectTo: window.location.href,
-        })
-        .then(({ error }) => {
-          if (error) {
-            alert('Fel: ' + error.message);
-          } else {
-            alert('Ett mail har skickats till ' + email);
-          }
-        });
-    }
-  </script>
-</body>
-</html>
+        if (profileError) {
+          alert('Inloggning lyckades!');
+        } else {
+          alert(`Välkommen tillbaka, ${profileData.username}!`);
+        }
