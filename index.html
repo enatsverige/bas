@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login / Register</title>
+  <title>Enat Sverige</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
     body {
@@ -13,7 +13,7 @@
       color: #ffc200;
     }
     h1 {
-      font-size: 2rem;
+      font-size: 2.5rem;
       text-align: center;
       margin-bottom: 1rem;
     }
@@ -45,19 +45,21 @@
       font-size: 1rem;
       border: 1px solid #ccc;
       border-radius: 6px;
+      background-color: #ffc200;
+      color: #003578;
     }
     button {
       margin-top: 1.5rem;
       padding: 10px 20px;
       font-size: 1rem;
       border: none;
-      background-color: #0055b8;
+      background-color: #336bb8;
       color: white;
       border-radius: 25px;
       cursor: pointer;
     }
     button:hover {
-      background-color: #0066cc;
+      background-color: #417fd1;
     }
     #thank-you {
       display: none;
@@ -191,3 +193,23 @@
         } else {
           alert(`Välkommen tillbaka, ${profileData.username}!`);
         }
+      }
+    });
+
+    function forgotPassword() {
+      const email = prompt("Ange din email för återställning av lösenord:");
+      if (!email) return;
+
+      supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.href
+      }).then(({ error }) => {
+        if (error) {
+          alert('Fel: ' + error.message);
+        } else {
+          alert('Ett mail har skickats till ' + email);
+        }
+      });
+    }
+  </script>
+</body>
+</html>
