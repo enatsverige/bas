@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="sv">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Enat Sverige</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
@@ -61,11 +61,12 @@
     button:hover {
       background-color: #417fd1;
     }
-    #message {
+    #thank-you {
       display: none;
-      font-size: 1.6rem;
+      font-size: 1.5rem;
       font-weight: bold;
       margin-top: 2rem;
+      text-align: center;
     }
     .link {
       color: #ffc200;
@@ -87,8 +88,8 @@
   <h1>ENAT SVERIGE</h1>
   <img src="enat-sverige-logga.png" alt="Enat Sverige Logga">
 
+  <h2 id="register-title">Registrera</h2>
   <form id="register-form">
-    <h2>Registrera</h2>
     <label for="email">Email <span class="required-hint">(krävs)</span></label>
     <input type="email" id="reg-email" required>
 
@@ -114,8 +115,8 @@
     <button type="submit">Registrera</button>
   </form>
 
+  <h2 id="login-title">Logga in</h2>
   <form id="login-form">
-    <h2>Logga in</h2>
     <label for="login-email">Email <span class="required-hint">(krävs)</span></label>
     <input type="email" id="login-email" required>
 
@@ -126,18 +127,7 @@
     <div class="link" onclick="forgotPassword()">Glömt lösenord?</div>
   </form>
 
-  <div id="message"></div>
-  <div id="account-info" style="display:none; font-size: 1.2rem; margin-top: 2rem;"></div>
-  <div id="update-form" style="display:none; max-width:400px; background:#004a99; padding:1rem; border-radius:8px;">
-    <h2>Uppdatera konto</h2>
-    <label for="new-email">Ny email</label>
-    <input type="email" id="new-email">
-
-    <label for="new-username">Nytt användarnamn</label>
-    <input type="text" id="new-username">
-
-    <button onclick="updateAccountInfo()">Uppdatera</button>
-  </div>
+  <div id="thank-you"></div>
 
   <script>
     const supabase = window.supabase.createClient(
@@ -147,25 +137,9 @@
 
     const registerForm = document.getElementById('register-form');
     const loginForm = document.getElementById('login-form');
-    const message = document.getElementById('message');
-    const accountInfo = document.getElementById('account-info');
-    const updateForm = document.getElementById('update-form');
-
-    function showTimer(createdAt) {
-      function update() {
-        const now = new Date();
-        const createdDate = new Date(createdAt);
-        const diff = new Date(now - createdDate);
-        const years = diff.getUTCFullYear() - 1970;
-        const days = diff.getUTCDate() - 1;
-        const hours = diff.getUTCHours();
-        const mins = diff.getUTCMinutes();
-        const secs = diff.getUTCSeconds();
-        document.getElementById("timer").textContent = `${years} år, ${days} dagar, ${hours} timmar, ${mins} minuter, ${secs} sekunder`;
-      }
-      update();
-      setInterval(update, 1000);
-    }
+    const thankYouMessage = document.getElementById('thank-you');
+    const registerTitle = document.getElementById('register-title');
+    const loginTitle = document.getElementById('login-title');
 
     registerForm.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -175,67 +149,97 @@
       const firstname = document.getElementById('firstname').value;
       const referral = document.getElementById('referral').value;
 
-      const { data, error } = await supabase.auth.signUp({ email, password });
-      if (error) return alert('Fel: ' + error.message);
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password
+      });
 
-      const user = data.user;
-      await supabase.from('Profiles').insert([{ id: user.id, username, firstname, referral }]);
+      if (error) {
+        alert('Fel: ' + error.message);
+        return;
+      }
 
-      registerForm.style.display = loginForm.style.display = 'none';
-      message.textContent = `Tack för din registrering, ${firstname}!`;
-      message.style.display = 'block';
+      // Hämta användaren separat
+      const { data: userData, error: userError } = await supabase.auth.getUser();
 
-      accountInfo.innerHTML = `
-        <p><strong>Användarnamn:</strong> ${username}</p>
-        <p><strong>Skapad:</strong> ${new Date(user.created_at).toLocaleString()}</p>
-        <p><strong>Hur länge kontot funnits:</strong> <span id="timer"></span></p>
-      `;
-      accountInfo.style.display = updateForm.style.display = 'block';
-      showTimer(user.created_at);
+      if (userError || !userData?.user?.id) {
+        alert('Kunde inte hämta användar-ID.');
+        return;
+      }
+
+      const userId = userData.user.id;
+
+      // Lägg till profil
+      const { error: insertError } = await supabase.from('Profiles').insert([
+        {
+          id: userId,
+          username,
+          firstname,
+          referral
+        }
+      ]);
+
+      if (insertError) {
+        alert('Kunde inte spara profilinfo: ' + insertError.message);
+        return;
+      }
+
+      registerForm.style.display = 'none';
+      loginForm.style.display = 'none';
+      registerTitle.style.display = 'none';
+      loginTitle.style.display = 'none';
+      thankYouMessage.textContent = `Tack för din registrering, ${firstname}!`;
+      thankYouMessage.style.display = 'block';
     });
 
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const email = document.getElementById('login-email').value;
       const password = document.getElementById('login-password').value;
-      const { data: loginData, error } = await supabase.auth.signInWithPassword({ email, password });
 
-      if (error) return alert('Fel vid inloggning: ' + error.message);
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
 
-      const { data: userData } = await supabase.auth.getUser();
-      const user = userData.user;
+      if (error) {
+        alert('Fel vid inloggning: ' + error.message);
+        return;
+      }
 
-      const { data: profileData } = await supabase.from('Profiles').select().eq('id', user.id).single();
-      registerForm.style.display = loginForm.style.display = 'none';
-      message.textContent = `Välkommen tillbaka, ${profileData.firstname}!`;
-      message.style.display = 'block';
+      const {
+        data: { user }
+      } = await supabase.auth.getUser();
 
-      accountInfo.innerHTML = `
-        <p><strong>Användarnamn:</strong> ${profileData.username}</p>
-        <p><strong>Skapad:</strong> ${new Date(user.created_at).toLocaleString()}</p>
-        <p><strong>Hur länge kontot funnits:</strong> <span id="timer"></span></p>
-      `;
-      accountInfo.style.display = updateForm.style.display = 'block';
-      showTimer(user.created_at);
+      const { data: profileData, error: profileError } = await supabase
+        .from('Profiles')
+        .select('firstname')
+        .eq('id', user.id)
+        .single();
+
+      loginForm.style.display = 'none';
+      registerForm.style.display = 'none';
+      loginTitle.style.display = 'none';
+      registerTitle.style.display = 'none';
+
+      if (profileError) {
+        thankYouMessage.textContent = 'Inloggning lyckades!';
+      } else {
+        thankYouMessage.textContent = `Välkommen tillbaka, ${profileData.firstname}!`;
+      }
+      thankYouMessage.style.display = 'block';
     });
 
     function forgotPassword() {
       const email = prompt("Ange din email för återställning av lösenord:");
       if (!email) return;
-      supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.href })
-        .then(({ error }) => alert(error ? 'Fel: ' + error.message : 'Mail skickat till ' + email));
-    }
 
-    async function updateAccountInfo() {
-      const newEmail = document.getElementById('new-email').value;
-      const newUsername = document.getElementById('new-username').value;
-      const {
-        data: { user }
-      } = await supabase.auth.getUser();
-
-      if (newEmail) await supabase.auth.updateUser({ email: newEmail });
-      if (newUsername) await supabase.from('Profiles').update({ username: newUsername }).eq('id', user.id);
-      alert('Uppdaterad! Ladda om sidan för att se ändringar.');
+      supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.href
+      }).then(({ error }) => {
+        if (error) {
+          alert('Fel: ' + error.message);
+        } else {
+          alert('Ett mail har skickats till ' + email);
+        }
+      });
     }
   </script>
 </body>
