@@ -3,35 +3,50 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Enat Sverige</title>
+  <title>Login / Register</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
     body {
       font-family: sans-serif;
       padding: 2rem;
-      background-color: #f9f9f9;
+      background-color: #003578;  /* deep blue background */
+      color: #ffc200;             /* yellow text */
+    }
+    h1 {
+      text-align: center;
+      font-size: 3rem;
+      margin-bottom: 0;
+      color: #ffc200;
+    }
+    .logo {
+      display: block;
+      margin: 1rem auto 2rem auto;
+      max-width: 200px;
+      height: auto;
     }
     h2 {
-      font-size: 1.1rem;
-      margin-bottom: 0.5rem;
+      font-size: 1.25rem;
+      color: #ffc200;
     }
     form {
       margin-bottom: 2rem;
       padding: 1rem;
-      background: white;
+      background: #002a5c; /* a bit darker blue behind forms */
       border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
       max-width: 400px;
+      color: #ffc200;
     }
     label {
       display: block;
       margin-top: 1rem;
       font-weight: bold;
+      color: #ffc200;
     }
     .required-hint {
       font-weight: normal;
       font-size: 0.85rem;
-      color: #666;
+      color: #e6d746; /* lighter yellow for hints */
       margin-left: 0.4rem;
     }
     input, select {
@@ -40,28 +55,32 @@
       font-size: 1rem;
       border: 1px solid #ccc;
       border-radius: 6px;
+      color: #003578;
+      background-color: #ffc200;
     }
     button {
       margin-top: 1.5rem;
       padding: 10px 20px;
       font-size: 1rem;
       border: none;
-      background-color: #222;
-      color: white;
+      background-color: #0059a6;  /* lighter blue for buttons */
+      color: #ffc200;
       border-radius: 25px;
       cursor: pointer;
     }
     button:hover {
-      background-color: #444;
+      background-color: #0071d1;  /* slightly lighter on hover */
     }
     #thank-you {
       display: none;
       font-size: 1.2rem;
       font-weight: bold;
       margin-top: 2rem;
+      color: #ffc200;
+      text-align: center;
     }
     .link {
-      color: #0077cc;
+      color: #ffc200;
       cursor: pointer;
       text-decoration: underline;
       font-size: 0.95rem;
@@ -71,6 +90,9 @@
   </style>
 </head>
 <body>
+
+  <h1>ENAT SVERIGE</h1>
+  <img src="enat-sverige-logga.png" alt="Enat Sverige Logo" class="logo" />
 
   <h2>Registrera</h2>
   <form id="register-form">
@@ -111,7 +133,7 @@
     <div class="link" onclick="forgotPassword()">Glömt lösenord?</div>
   </form>
 
-  <div id="thank-you"></div>
+  <div id="thank-you">Tack för din registrering!</div>
 
   <script>
     const supabase = supabase.createClient(
@@ -149,8 +171,8 @@
           },
         ]);
         registerForm.style.display = 'none';
-        thankYouMessage.style.display = 'block';
         thankYouMessage.textContent = `Tack för din registrering, ${firstname}!`;
+        thankYouMessage.style.display = 'block';
       }
     });
 
@@ -158,17 +180,12 @@
       e.preventDefault();
       const email = document.getElementById('login-email').value;
       const password = document.getElementById('login-password').value;
-
-      const { error, data } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
 
       if (error) {
         alert('Fel vid inloggning: ' + error.message);
       } else {
-        const user = data.user;
-        alert(`Välkommen tillbaka, ${user.email}!`);
+        alert('Välkommen tillbaka!');
       }
     });
 
