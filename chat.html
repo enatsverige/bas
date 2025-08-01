@@ -1,4 +1,3 @@
-<!-- chat.html -->
 <!DOCTYPE html>
 <html lang="sv">
 <head>
@@ -7,68 +6,110 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
     body {
-      background: #001f3f;
-      color: white;
+      background-color: #003578;
+      color: #ffc200;
       font-family: sans-serif;
-      padding: 1rem;
+      padding: 2rem;
     }
-    #userList {
+
+    h2 {
+      text-align: center;
+    }
+
+    #user-list {
+      max-height: 300px;
+      overflow-y: auto;
+      background: #004a99;
+      padding: 1rem;
+      border-radius: 8px;
       margin-bottom: 1rem;
     }
-    .username {
-      font-weight: bold;
-      margin-right: 1rem;
+
+    .user-item {
       cursor: pointer;
+      padding: 0.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #336bb8;
     }
+
+    .user-item:hover {
+      background-color: #0059b3;
+    }
+
     .heart {
+      font-size: 18px;
       cursor: pointer;
       color: gray;
+      user-select: none;
     }
+
     .heart.favorited {
       color: red;
     }
-    #messages {
+
+    #search {
+      width: 200px;
+      padding: 0.4rem;
       margin-bottom: 1rem;
-      background: #003366;
+      border-radius: 6px;
+      border: none;
+    }
+
+    #chat-box {
+      border: 2px solid #ffc200;
       padding: 1rem;
-      border-radius: 10px;
-      max-height: 400px;
+      border-radius: 8px;
+      max-height: 300px;
       overflow-y: auto;
+      background: #002a5e;
+      margin-bottom: 1rem;
+      white-space: pre-wrap;
     }
+
     .message {
-      margin-bottom: 0.5rem;
+      margin: 0.5rem 0;
     }
-    .sender {
-      font-weight: bold;
+
+    .toggle {
       color: #ffc200;
-    }
-    button {
-      padding: 0.5rem 1rem;
-      background-color: #ffc200;
-      border: none;
-      border-radius: 8px;
       cursor: pointer;
-      color: #003366;
-      font-weight: bold;
+      font-size: 0.9rem;
+      margin-left: 4px;
     }
-    input[type="text"] {
+
+    #chat-input {
+      width: 300px;
       padding: 0.5rem;
-      width: 70%;
-      border-radius: 8px;
+      border-radius: 6px;
       border: none;
-      margin-right: 0.5rem;
+    }
+
+    #send-btn {
+      padding: 0.5rem 1rem;
+      background: #336bb8;
+      border: none;
+      border-radius: 6px;
+      color: white;
+      margin-left: 5px;
+      cursor: pointer;
+    }
+
+    #send-btn:hover {
+      background: #417fd1;
     }
   </style>
 </head>
 <body>
-  <h1>Chatt</h1>
-  <div id="userList"></div>
-  <button id="toggleUsers" onclick="toggleUserList()">Visa fler</button>
-
-  <div id="messages"></div>
-
-  <input type="text" id="messageInput" placeholder="Skriv ett meddelande..." />
-  <button onclick="sendMessage()">Skicka</button>
+  <h2>Chatt</h2>
+  <input type="text" id="search" placeholder="Sök användarnamn..." />
+  <div id="user-list"></div>
+  <div id="chat-box"></div>
+  <div>
+    <input type="text" id="chat-input" placeholder="Skriv ett meddelande..." />
+    <button id="send-btn">Skicka</button>
+  </div>
 
   <script>
     const supabase = window.supabase.createClient(
@@ -76,117 +117,201 @@
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0YmNxZ2prdnpnY2pvYmZidGFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1MzU0NTksImV4cCI6MjA2OTExMTQ1OX0.ogacm-3bmQI7WDgHZSI2r6jDOrDAGMfI7QtG0avYMTQ'
     );
 
-    let currentUser;
-    let selectedUser = null;
+    let currentUser = null;
+    let selectedUserId = null;
     let favorites = [];
-    let users = [];
-    let showAll = false;
 
-    async function load() {
-      const { data: auth } = await supabase.auth.getUser();
-      currentUser = auth.user;
+    function getUserIdFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('user_id');
+    }
 
-      const { data: favs } = await supabase
-        .from('Favorites')
-        .select('favorite_id')
-        .eq('user_id', currentUser.id);
-      favorites = favs.map(f => f.favorite_id);
+    async function loadUsers() {
+      const { data: authData } = await supabase.auth.getUser();
+      currentUser = authData.user;
 
       const { data: profiles } = await supabase
-        .from('Profiles')
-        .select('id, username');
+        .from("Profiles")
+        .select("id, username");
 
-      users = profiles.filter(u => u.id !== currentUser.id);
-      users.sort((a, b) => {
+      const { data: favData } = await supabase
+        .from("Favorites")
+        .select("favorite_id")
+        .eq("user_id", currentUser.id);
+
+      favorites = favData.map(f => f.favorite_id);
+
+      profiles.sort((a, b) => {
         const aFav = favorites.includes(a.id);
         const bFav = favorites.includes(b.id);
         if (aFav && !bFav) return -1;
         if (!aFav && bFav) return 1;
-        return a.username.localeCompare(b.username);
+        return 0;
       });
 
-      renderUserList();
+      const otherUsers = profiles.filter(p => p.id !== currentUser.id);
+
+      const userIdFromUrl = getUserIdFromUrl();
+      if (userIdFromUrl) {
+        const selectedUser = otherUsers.find(u => u.id === userIdFromUrl);
+        if (selectedUser) {
+          renderUserList([selectedUser]);
+          selectedUserId = selectedUser.id;
+          loadMessages();
+          return;
+        }
+      }
+
+      renderUserList(otherUsers);
     }
 
-    function renderUserList() {
-      const list = document.getElementById("userList");
+    function renderUserList(users) {
+      const list = document.getElementById("user-list");
       list.innerHTML = "";
 
-      const visibleUsers = showAll ? users : users.slice(0, 3);
-      visibleUsers.forEach(user => {
-        const div = document.createElement("div");
-        const isFav = favorites.includes(user.id);
-        div.innerHTML = `
-          <span class="username" onclick="selectUser('${user.id}')">${user.username}</span>
-          <span class="heart ${isFav ? 'favorited' : ''}" onclick="toggleFavorite('${user.id}', this)">♥</span>
+      users.forEach(user => {
+        const item = document.createElement("div");
+        item.className = "user-item";
+        item.innerHTML = `
+          <span>${user.username}</span>
+          <span class="heart" data-id="${user.id}">♥</span>
         `;
-        list.appendChild(div);
+
+        if (favorites.includes(user.id)) {
+          item.querySelector(".heart").classList.add("favorited");
+        }
+
+        item.addEventListener("click", () => {
+          selectedUserId = user.id;
+          loadMessages();
+        });
+
+        item.querySelector(".heart").addEventListener("click", async (e) => {
+          e.stopPropagation();
+          const heart = e.target;
+          const userId = heart.getAttribute("data-id");
+
+          if (heart.classList.contains("favorited")) {
+            await supabase.from("Favorites")
+              .delete()
+              .match({ user_id: currentUser.id, favorite_id: userId });
+            heart.classList.remove("favorited");
+            favorites = favorites.filter(favId => favId !== userId);
+          } else {
+            await supabase.from("Favorites")
+              .insert({ user_id: currentUser.id, favorite_id: userId });
+            heart.classList.add("favorited");
+            favorites.push(userId);
+          }
+
+          await loadUsers();
+        });
+
+        list.appendChild(item);
       });
-
-      const toggleBtn = document.getElementById('toggleUsers');
-      toggleBtn.textContent = showAll ? 'Visa färre' : 'Visa fler';
     }
 
-    function toggleUserList() {
-      showAll = !showAll;
-      renderUserList();
-    }
+    async function loadMessages() {
+      if (!selectedUserId) return;
 
-    async function toggleFavorite(userId, el) {
-      if (el.classList.contains('favorited')) {
-        await supabase
-          .from('Favorites')
-          .delete()
-          .eq('user_id', currentUser.id)
-          .eq('favorite_id', userId);
-        el.classList.remove('favorited');
-      } else {
-        await supabase
-          .from('Favorites')
-          .insert({ user_id: currentUser.id, favorite_id: userId });
-        el.classList.add('favorited');
+      const { data, error } = await supabase
+        .from("Messages")
+        .select("*")
+        .or(`and(sender_id.eq.${currentUser.id},receiver_id.eq.${selectedUserId}),and(sender_id.eq.${selectedUserId},receiver_id.eq.${currentUser.id})`)
+        .order("sent_at", { ascending: true });
+
+      if (error) {
+        console.error("Fel vid hämtning av meddelanden:", error.message);
+        return;
       }
-      await load();
-    }
 
-    async function selectUser(userId) {
-      selectedUser = userId;
-      document.getElementById("messages").innerHTML = "";
+      const chatBox = document.getElementById("chat-box");
+      chatBox.innerHTML = "";
 
-      const { data: messages } = await supabase
-        .from('Messages')
-        .select('sender_id, receiver_id, content, created_at')
-        .or(`and(sender_id.eq.${currentUser.id},receiver_id.eq.${userId}),and(sender_id.eq.${userId},receiver_id.eq.${currentUser.id})`)
-        .order('created_at', { ascending: true });
+      data.forEach(msg => {
+        const date = new Date(msg.sent_at);
+        const dateStr = date.toLocaleDateString("sv-SE") + " " + date.toLocaleTimeString("sv-SE");
 
-      messages.forEach(msg => {
+        const fullText = `[${dateStr}] ${msg.content}`;
         const div = document.createElement("div");
         div.className = "message";
-        const sender = msg.sender_id === currentUser.id ? "Du" : "Den andra";
-        div.innerHTML = `<span class="sender">${sender}:</span> ${msg.content}`;
-        document.getElementById("messages").appendChild(div);
+
+        if (fullText.length > 300) {
+          const shortText = fullText.substring(0, 300) + "...";
+          const span = document.createElement("span");
+          span.textContent = shortText;
+
+          const toggle = document.createElement("span");
+          toggle.textContent = " Visa mer";
+          toggle.className = "toggle";
+
+          toggle.addEventListener("click", () => {
+            if (span.textContent === shortText) {
+              span.textContent = fullText;
+              toggle.textContent = " Visa mindre";
+            } else {
+              span.textContent = shortText;
+              toggle.textContent = " Visa mer";
+            }
+          });
+
+          div.appendChild(span);
+          div.appendChild(toggle);
+        } else {
+          div.textContent = fullText;
+        }
+
+        chatBox.appendChild(div);
       });
 
-      const messagesDiv = document.getElementById("messages");
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      chatBox.scrollTop = chatBox.scrollHeight;
     }
 
     async function sendMessage() {
-      const input = document.getElementById("messageInput");
+      const input = document.getElementById("chat-input");
       const content = input.value.trim();
-      if (!content || !selectedUser) return;
+      if (!content || !selectedUserId) return;
 
-      await supabase.from('Messages').insert({
+      await supabase.from("Messages").insert({
         sender_id: currentUser.id,
-        receiver_id: selectedUser,
-        content
+        receiver_id: selectedUserId,
+        content,
+        sent_at: new Date().toISOString(),
+        read: false
       });
 
       input.value = "";
-      selectUser(selectedUser);
+      loadMessages();
     }
 
-    load();
+    document.getElementById("send-btn").addEventListener("click", sendMessage);
+    document.getElementById("chat-input").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") sendMessage();
+    });
+
+    document.getElementById("search").addEventListener("input", async (e) => {
+      const query = e.target.value.toLowerCase();
+
+      const { data: profiles, error } = await supabase.from("Profiles").select("id, username");
+      if (error) {
+        console.error("Fel vid sökning av användare:", error.message);
+        return;
+      }
+
+      const filtered = profiles
+        .filter(user => user.id !== currentUser.id && user.username.toLowerCase().includes(query))
+        .sort((a,b) => {
+          const aFav = favorites.includes(a.id);
+          const bFav = favorites.includes(b.id);
+          if (aFav && !bFav) return -1;
+          if (!aFav && bFav) return 1;
+          return 0;
+        });
+
+      renderUserList(filtered);
+    });
+
+    loadUsers();
   </script>
 </body>
 </html>
