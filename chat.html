@@ -2,79 +2,86 @@
 <html lang="sv">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Chat</title>
+  <title>Chatta</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
     body {
       font-family: sans-serif;
       background-color: #003578;
       color: #ffc200;
-      padding: 1rem;
-      max-width: 700px;
-      margin: auto;
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
+      padding: 2rem;
+      text-align: center;
     }
-    #chat-container {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
+
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
+
+    #chat-box {
       background-color: #004a99;
       border-radius: 8px;
       padding: 1rem;
+      width: 100%;
+      max-width: 600px;
+      margin: auto;
+      height: 400px;
+      overflow-y: scroll;
+      text-align: left;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
     }
-    #messages {
-      flex: 1;
-      overflow-y: auto;
-      border: 1px solid #ffc200;
-      border-radius: 6px;
-      padding: 10px;
+
+    .message {
       margin-bottom: 1rem;
-      background: #003466;
-      font-size: 0.95rem;
-      white-space: pre-wrap;
-      word-wrap: break-word;
     }
-    #messages div {
-      margin-bottom: 8px;
+
+    .message strong {
+      color: #ffc200;
     }
-    .own-message {
-      text-align: right;
-      font-weight: bold;
+
+    .timestamp {
+      font-size: 0.8rem;
+      color: #aaa;
     }
+
     #chat-input {
+      width: 100%;
+      max-width: 600px;
+      margin: 1rem auto;
       display: flex;
     }
-    #chat-input input {
-      flex: 1;
-      padding: 0.6rem;
-      font-size: 1rem;
+
+    #message-input {
+      flex-grow: 1;
+      padding: 0.5rem;
       border-radius: 6px 0 0 6px;
       border: none;
+      font-size: 1rem;
+      background: #fff;
+      color: #003578;
     }
-    #chat-input button {
-      padding: 0 1rem;
-      border-radius: 0 6px 6px 0;
-      border: none;
+
+    #send-button {
+      padding: 0.5rem 1rem;
       background-color: #336bb8;
       color: white;
+      border: none;
+      border-radius: 0 6px 6px 0;
       cursor: pointer;
     }
-    #chat-input button:hover {
+
+    #send-button:hover {
       background-color: #417fd1;
     }
   </style>
 </head>
 <body>
-  <h1>Chat</h1>
-  <div id="chat-container">
-    <div id="messages"></div>
-    <form id="chat-input">
-      <input type="text" id="message-text" placeholder="Skriv ditt meddelande här..." autocomplete="off" />
-      <button type="submit">Skicka</button>
-    </form>
+  <h1>Chatt</h1>
+  <div id="chat-box"></div>
+
+  <div id="chat-input">
+    <input type="text" id="message-input" placeholder="Skriv ett meddelande..." />
+    <button id="send-button">Skicka</button>
   </div>
 
   <script>
@@ -83,97 +90,94 @@
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0YmNxZ2prdnpnY2pvYmZidGFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1MzU0NTksImV4cCI6MjA2OTExMTQ1OX0.ogacm-3bmQI7WDgHZSI2r6jDOrDAGMfI7QtG0avYMTQ'
     );
 
-    let currentUserId = null;
-    let chatPartnerId = null;
-    const messagesDiv = document.getElementById('messages');
-    const chatForm = document.getElementById('chat-input');
-    const messageInput = document.getElementById('message-text');
+    const chatBox = document.getElementById('chat-box');
+    const input = document.getElementById('message-input');
+    const sendBtn = document.getElementById('send-button');
 
-    const urlParams = new URLSearchParams(window.location.search);
-    chatPartnerId = urlParams.get('to');
+    let currentUserId;
+    let currentUsername;
+    const params = new URLSearchParams(window.location.search);
+    const receiverId = params.get("to");
 
-    async function getCurrentUser() {
-      const { data } = await supabase.auth.getUser();
-      if (!data?.user) {
-        alert('Du måste logga in för att chatta!');
-        window.location.href = 'index.html';
-        return null;
-      }
-      return data.user;
-    }
+    async function loadUser() {
+      const { data: authData } = await supabase.auth.getUser();
+      currentUserId = authData.user.id;
 
-    async function fetchMessages() {
-      if (!currentUserId || !chatPartnerId) return;
-
-      const { data, error } = await supabase.from('"Messages"').select('*').or(
-        `and(sender_id.eq.${currentUserId},receiver_id.eq.${chatPartnerId}),and(sender_id.eq.${chatPartnerId},receiver_id.eq.${currentUserId})`
-      ).order('created_at', { ascending: true });
+      const { data, error } = await supabase
+        .from("Profiles")
+        .select("username")
+        .eq("id", currentUserId)
+        .single();
 
       if (error) {
-        alert('Fel vid hämtning av meddelanden: ' + error.message);
+        alert("Fel vid hämtning av användarnamn");
         return;
       }
 
-      messagesDiv.innerHTML = '';
-      data.forEach(m => {
-        const div = document.createElement('div');
-        const time = new Date(m.created_at).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
-        div.textContent = `[${time}] ${m.sender_id === currentUserId ? 'Jag' : 'De'}: ${m.message}`;
-        if (m.sender_id === currentUserId) div.classList.add('own-message');
-        messagesDiv.appendChild(div);
+      currentUsername = data.username;
+    }
+
+    async function loadMessages() {
+      const { data, error } = await supabase
+        .from("Messages")
+        .select("*")
+        .or(`sender.eq.${currentUserId},receiver.eq.${currentUserId}`)
+        .order("created_at", { ascending: true });
+
+      if (error) {
+        console.error("Fel vid hämtning av meddelanden:", error.message);
+        return;
+      }
+
+      chatBox.innerHTML = "";
+      data.forEach(msg => {
+        const isOwn = msg.sender === currentUserId;
+        const user = isOwn ? "Du" : msg.sender_username;
+        const messageEl = document.createElement("div");
+        messageEl.classList.add("message");
+        messageEl.innerHTML = `
+          <strong>${user}</strong>: ${msg.content}
+          <div class="timestamp">${new Date(msg.created_at).toLocaleString()}</div>
+        `;
+        chatBox.appendChild(messageEl);
       });
 
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    async function sendMessage(message) {
-      if (!message.trim()) return;
-      const { error } = await supabase.from('"Messages"').insert([{
-        sender_id: currentUserId,
-        receiver_id: chatPartnerId,
-        message,
-        is_read: false
+    async function sendMessage() {
+      const content = input.value.trim();
+      if (!content || !receiverId) return;
+
+      const { error } = await supabase.from("Messages").insert([{
+        sender: currentUserId,
+        receiver: receiverId,
+        content,
+        sender_username: currentUsername,
+        read: false
       }]);
+
       if (error) {
-        alert('Fel vid sändning av meddelande: ' + error.message);
+        console.error("Fel vid sändning av meddelande:", error.message);
         return;
       }
-      messageInput.value = '';
-      await fetchMessages();
+
+      input.value = "";
+      loadMessages();
     }
 
-    chatForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      await sendMessage(messageInput.value);
-    });
-
-    messageInput.addEventListener('keydown', async (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
+    input.addEventListener("keypress", function (e) {
+      if (e.key === "Enter") {
         e.preventDefault();
-        await sendMessage(messageInput.value);
+        sendMessage();
       }
     });
 
-    async function markMessagesRead() {
-      await supabase.from('"Messages"').update({ is_read: true })
-        .eq('receiver_id', currentUserId)
-        .eq('sender_id', chatPartnerId)
-        .is('is_read', false);
-    }
+    sendBtn.addEventListener("click", sendMessage);
 
-    async function init() {
-      const user = await getCurrentUser();
-      if (!user) return;
-      currentUserId = user.id;
-      if (!chatPartnerId) {
-        alert('Ingen mottagare angiven för chatten!');
-        return;
-      }
-      await fetchMessages();
-      await markMessagesRead();
-    }
+    loadUser().then(loadMessages);
 
-    init();
+    setInterval(loadMessages, 5000); // Uppdatera chatten varje 5 sekunder
   </script>
 </body>
 </html>
