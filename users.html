@@ -2,8 +2,8 @@
 <html lang="sv">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Användare</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Användare - Enat Sverige</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
     body {
@@ -11,37 +11,91 @@
       background-color: #003578;
       color: #ffc200;
       padding: 2rem;
-      text-align: center;
     }
-    input {
-      padding: 0.5rem;
-      width: 80%;
-      max-width: 400px;
-      border-radius: 6px;
-      border: none;
+    h1 {
+      text-align: center;
+      font-size: 2.5rem;
       margin-bottom: 1rem;
     }
-    .user-list {
-      max-width: 500px;
-      margin: 0 auto;
-      text-align: left;
-    }
-    .user {
+    #search {
+      width: 100%;
+      max-width: 400px;
       padding: 0.5rem;
-      background-color: #004a99;
-      margin: 0.3rem 0;
+      font-size: 1rem;
       border-radius: 6px;
+      border: none;
+      margin: 0 auto 1.5rem auto;
+      display: block;
     }
-    .user a {
+    ul {
+      list-style: none;
+      padding: 0;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+    li {
+      background: #004a99;
+      padding: 0.75rem 1rem;
+      margin-bottom: 0.5rem;
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    li:hover {
+      background: #005ccf;
+    }
+    .username {
+      flex-grow: 1;
       color: #ffc200;
       text-decoration: underline;
+    }
+    .heart {
+      font-size: 1.4rem;
+      color: #ccc;
+      cursor: pointer;
+      user-select: none;
+      margin-left: 10px;
+      transition: color 0.3s;
+    }
+    .heart.favorited {
+      color: #e63946;
+    }
+    #logout {
+      margin: 1rem auto;
+      display: block;
+      background-color: #336bb8;
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      font-size: 1rem;
+      border-radius: 25px;
+      cursor: pointer;
+      max-width: 400px;
+    }
+    #logout:hover {
+      background-color: #417fd1;
+    }
+    #welcome {
+      max-width: 400px;
+      margin: 0 auto 1.5rem auto;
+      font-weight: bold;
+      font-size: 1.2rem;
+      text-align: center;
     }
   </style>
 </head>
 <body>
-  <h1>Alla användare</h1>
-  <input type="text" id="search" placeholder="Sök efter användarnamn..." />
-  <div class="user-list" id="user-list">Laddar...</div>
+
+  <h1>Alla Användare</h1>
+  <div id="welcome"></div>
+  <input type="text" id="search" placeholder="Sök användare..." />
+
+  <ul id="user-list"></ul>
+
+  <button id="logout">Logga ut</button>
 
   <script>
     const supabase = window.supabase.createClient(
@@ -49,39 +103,123 @@
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0YmNxZ2prdnpnY2pvYmZidGFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1MzU0NTksImV4cCI6MjA2OTExMTQ1OX0.ogacm-3bmQI7WDgHZSI2r6jDOrDAGMfI7QtG0avYMTQ'
     );
 
-    const userList = document.getElementById('user-list');
-    const searchInput = document.getElementById('search');
+    let currentUserId = null;
+    let favoriteUserIds = new Set();
 
-    async function loadUsers() {
-      const { data, error } = await supabase.from('Profiles').select('id, username');
-      if (error) {
-        userList.innerHTML = 'Fel vid hämtning av användare.';
-        return;
+    async function loadFavorites() {
+      const { data, error } = await supabase
+        .from('Favorites')
+        .select('favorited_user_id')
+        .eq('user_id', currentUserId);
+      if (!error) {
+        favoriteUserIds = new Set(data.map(fav => fav.favorited_user_id));
+      }
+    }
+
+    async function toggleFavorite(favoritedUserId, heartEl) {
+      if (favoriteUserIds.has(favoritedUserId)) {
+        // Remove favorite
+        const { error } = await supabase
+          .from('Favorites')
+          .delete()
+          .eq('user_id', currentUserId)
+          .eq('favorited_user_id', favoritedUserId);
+        if (!error) {
+          favoriteUserIds.delete(favoritedUserId);
+          heartEl.classList.remove('favorited');
+        }
+      } else {
+        // Add favorite
+        const { error } = await supabase
+          .from('Favorites')
+          .insert([{ user_id: currentUserId, favorited_user_id: favoritedUserId }]);
+        if (!error) {
+          favoriteUserIds.add(favoritedUserId);
+          heartEl.classList.add('favorited');
+        }
+      }
+    }
+
+    async function fetchUsers(searchTerm = '') {
+      let query = supabase
+        .from('Profiles')
+        .select('id, username, firstname')
+        .neq('id', currentUserId)
+        .order('username', { ascending: true });
+
+      if (searchTerm) {
+        query = query.ilike('username', `%${searchTerm}%`);
       }
 
-      renderUsers(data);
+      const { data, error } = await query;
 
-      searchInput.addEventListener('input', () => {
-        const search = searchInput.value.toLowerCase();
-        const filtered = data.filter(u => u.username.toLowerCase().includes(search));
-        renderUsers(filtered);
-      });
+      if (error) {
+        alert('Fel vid hämtning av användare: ' + error.message);
+        return [];
+      }
+      return data || [];
     }
 
     function renderUsers(users) {
-      if (users.length === 0) {
-        userList.innerHTML = 'Inga användare hittades.';
-        return;
-      }
+      const list = document.getElementById('user-list');
+      list.innerHTML = '';
 
-      userList.innerHTML = users.map(u => `
-        <div class="user">
-          <a href="chat.html?user=${encodeURIComponent(u.username)}">${u.username}</a>
-        </div>
-      `).join('');
+      users.forEach(user => {
+        const li = document.createElement('li');
+
+        const usernameSpan = document.createElement('span');
+        usernameSpan.textContent = user.username + (user.firstname ? ` (${user.firstname})` : '');
+        usernameSpan.className = 'username';
+        usernameSpan.onclick = () => {
+          // Gå till chat med denna användare
+          window.location.href = `chat.html?user=${user.id}&username=${encodeURIComponent(user.username)}`;
+        };
+
+        const heart = document.createElement('span');
+        heart.innerHTML = '&#10084;'; // hjärta
+        heart.className = 'heart';
+        if (favoriteUserIds.has(user.id)) {
+          heart.classList.add('favorited');
+        }
+        heart.onclick = (e) => {
+          e.stopPropagation(); // så att li onclick inte triggas
+          toggleFavorite(user.id, heart);
+        };
+
+        li.appendChild(usernameSpan);
+        li.appendChild(heart);
+        list.appendChild(li);
+      });
     }
 
-    loadUsers();
+    async function main() {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error || !user) {
+        alert('Du måste logga in för att se sidan');
+        window.location.href = 'index.html';
+        return;
+      }
+      currentUserId = user.id;
+
+      document.getElementById('welcome').textContent = `Välkommen tillbaka, ${user.email}`;
+
+      await loadFavorites();
+      const users = await fetchUsers();
+      renderUsers(users);
+
+      document.getElementById('search').addEventListener('input', async (e) => {
+        const searchTerm = e.target.value;
+        const filteredUsers = await fetchUsers(searchTerm);
+        renderUsers(filteredUsers);
+      });
+
+      document.getElementById('logout').onclick = async () => {
+        await supabase.auth.signOut();
+        window.location.href = 'index.html';
+      };
+    }
+
+    main();
   </script>
 </body>
 </html>
