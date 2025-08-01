@@ -1,4 +1,3 @@
-<!-- users.html -->
 <!DOCTYPE html>
 <html lang="sv">
 <head>
@@ -7,113 +6,132 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
     body {
+      font-family: sans-serif;
       background: #003578;
       color: #ffc200;
-      font-family: sans-serif;
-      padding: 1rem;
+      padding: 2rem;
       text-align: center;
     }
     input {
-      width: 80%;
+      width: 200px;
       padding: 0.5rem;
       margin-bottom: 1rem;
       border-radius: 8px;
-      border: 1px solid #ccc;
+      border: none;
     }
-    .user {
+    .user-card {
+      background: #004a99;
+      margin: 1rem auto;
+      padding: 1rem;
+      max-width: 400px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px #0005;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background: #004a99;
-      padding: 0.75rem;
-      border-radius: 10px;
-      margin-bottom: 0.5rem;
-      max-width: 500px;
-      margin-left: auto;
-      margin-right: auto;
-    }
-    .user span {
-      cursor: pointer;
-      font-weight: bold;
     }
     .heart {
-      font-size: 1.5rem;
       cursor: pointer;
-      color: gray;
+      font-size: 1.5rem;
     }
-    .heart.favorited {
-      color: red;
+    a {
+      color: #ffc200;
+      text-decoration: none;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
-  <h1>Alla Användare</h1>
+  <h1>Användare</h1>
   <input type="text" id="search" placeholder="Sök användarnamn..." />
-  <div id="user-list"></div>
+  <div id="users-list"></div>
 
   <script>
     const supabase = window.supabase.createClient(
       'https://jtbcqgjkvzgcjobfbtad.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0YmNxZ2prdnpnY2pvYmZidGFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1MzU0NTksImV4cCI6MjA2OTExMTQ1OX0.ogacm-3bmQI7WDgHZSI2r6jDOrDAGMfI7QtG0avYMTQ'
+      'ey...'
     );
 
-    let currentUser;
-    let favorites = [];
+    const searchInput = document.getElementById("search");
+    const usersList = document.getElementById("users-list");
 
-    async function loadUsers() {
-      const { data: auth } = await supabase.auth.getUser();
-      currentUser = auth.user;
+    async function getCurrentUser() {
+      const { data } = await supabase.auth.getUser();
+      return data.user;
+    }
 
-      const { data: favs } = await supabase.from('Favorites').select('favorite_id').eq('user_id', currentUser.id);
-      favorites = favs.map(f => f.favorite_id);
+    async function fetchUsers() {
+      const currentUser = await getCurrentUser();
+      const { data: profiles } = await supabase
+        .from("Profiles")
+        .select("id, username, created_at")
+        .neq("id", currentUser.id)
+        .order("created_at", { ascending: true });
 
-      const { data: users, error } = await supabase.from('Profiles').select('id, username');
-      if (error) {
-        console.error("Fel vid hämtning av användare:", error.message);
-        return;
-      }
+      const { data: favs } = await supabase
+        .from("Favorites")
+        .select("favorited_id")
+        .eq("user_id", currentUser.id);
 
-      const searchQuery = document.getElementById('search').value.toLowerCase();
-      const filtered = users.filter(user =>
-        user.id !== currentUser.id && user.username.toLowerCase().includes(searchQuery)
-      );
+      const favorites = favs.map(f => f.favorited_id);
 
-      filtered.sort((a, b) => {
-        const aFav = favorites.includes(a.id);
-        const bFav = favorites.includes(b.id);
-        return bFav - aFav || a.username.localeCompare(b.username);
+      usersList.innerHTML = "";
+      profiles.forEach(user => {
+        const created = new Date(user.created_at);
+        const container = document.createElement("div");
+        container.className = "user-card";
+
+        const userDiv = document.createElement("div");
+        const a = document.createElement("a");
+        a.href = `chat.html?user=${user.id}`;
+        a.textContent = user.username;
+        userDiv.appendChild(a);
+
+        const ageSpan = document.createElement("div");
+        ageSpan.style.fontSize = "0.8rem";
+        ageSpan.id = "age-" + user.id;
+        userDiv.appendChild(ageSpan);
+
+        const heart = document.createElement("div");
+        heart.innerHTML = favorites.includes(user.id) ? "❤️" : "🤍";
+        heart.className = "heart";
+        heart.onclick = async () => {
+          if (favorites.includes(user.id)) {
+            await supabase.from("Favorites").delete().match({ user_id: currentUser.id, favorited_id: user.id });
+            heart.innerHTML = "🤍";
+          } else {
+            await supabase.from("Favorites").insert({ user_id: currentUser.id, favorited_id: user.id });
+            heart.innerHTML = "❤️";
+          }
+        };
+
+        container.appendChild(userDiv);
+        container.appendChild(heart);
+        usersList.appendChild(container);
+
+        // Live age timer
+        setInterval(() => {
+          const now = new Date();
+          const diff = now - created;
+          const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+          const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+          const minutes = Math.floor((diff / (1000 * 60)) % 60);
+          const seconds = Math.floor((diff / 1000) % 60);
+          ageSpan.textContent = `Skapad: ${days}d ${hours}h ${minutes}m ${seconds}s`;
+        }, 1000);
       });
+    }
 
-      const list = document.getElementById('user-list');
-      list.innerHTML = '';
-      filtered.forEach(user => {
-        const div = document.createElement('div');
-        div.className = 'user';
-        div.innerHTML = `
-          <span onclick="startChat('${user.id}', '${user.username}')">${user.username}</span>
-          <span class="heart ${favorites.includes(user.id) ? 'favorited' : ''}" onclick="toggleFavorite('${user.id}', this)">♥</span>
-        `;
-        list.appendChild(div);
+    searchInput.addEventListener("input", () => {
+      const query = searchInput.value.toLowerCase();
+      const users = document.querySelectorAll(".user-card");
+      users.forEach(user => {
+        const name = user.querySelector("a").textContent.toLowerCase();
+        user.style.display = name.includes(query) ? "flex" : "none";
       });
-    }
+    });
 
-    async function toggleFavorite(userId, el) {
-      if (el.classList.contains('favorited')) {
-        await supabase.from('Favorites').delete().eq('user_id', currentUser.id).eq('favorite_id', userId);
-        el.classList.remove('favorited');
-      } else {
-        await supabase.from('Favorites').insert({ user_id: currentUser.id, favorite_id: userId });
-        el.classList.add('favorited');
-      }
-      loadUsers();
-    }
-
-    function startChat(userId, username) {
-      window.location.href = `chat.html?uid=${userId}&uname=${username}`;
-    }
-
-    document.getElementById('search').addEventListener('input', loadUsers);
-    loadUsers();
+    fetchUsers();
   </script>
 </body>
 </html>
