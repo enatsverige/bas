@@ -13,7 +13,7 @@
       text-align: center;
     }
     input {
-      width: 200px;
+      width: 300px;
       padding: 0.5rem;
       margin-bottom: 1rem;
       border-radius: 8px;
@@ -62,16 +62,28 @@
 
     async function fetchUsers() {
       const currentUser = await getCurrentUser();
-      const { data: profiles } = await supabase
+      if (!currentUser) return;
+
+      const { data: profiles, error: profileErr } = await supabase
         .from("Profiles")
         .select("id, username, created_at")
         .neq("id", currentUser.id)
         .order("created_at", { ascending: true });
 
-      const { data: favs } = await supabase
+      if (profileErr) {
+        console.error("Fel vid hämtning av användare:", profileErr.message);
+        return;
+      }
+
+      const { data: favs, error: favErr } = await supabase
         .from("Favorites")
         .select("favorited_id")
         .eq("user_id", currentUser.id);
+
+      if (favErr) {
+        console.error("Fel vid hämtning av favoriter:", favErr.message);
+        return;
+      }
 
       const favorites = favs.map(f => f.favorited_id);
 
@@ -109,7 +121,7 @@
         container.appendChild(heart);
         usersList.appendChild(container);
 
-        // Live age timer
+        // Live counter
         setInterval(() => {
           const now = new Date();
           const diff = now - created;
