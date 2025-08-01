@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Alla Användare - Enat Sverige</title>
+  <title>Alla Användare</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
     body {
@@ -14,165 +14,143 @@
       max-width: 600px;
       margin: auto;
     }
-    h1 {
-      text-align: center;
-      margin-bottom: 1rem;
-    }
-    #search {
+    input[type="text"] {
       width: 100%;
       padding: 0.5rem;
+      margin-bottom: 1rem;
       border-radius: 6px;
       border: none;
-      margin-bottom: 1rem;
       font-size: 1rem;
-      color: #003578;
     }
     ul {
       list-style-type: none;
       padding: 0;
       margin: 0;
+      max-height: 400px;
+      overflow-y: auto;
+      border: 1px solid #ffc200;
+      border-radius: 8px;
+      background: #004a99;
     }
     li {
-      background: #004a99;
-      margin-bottom: 0.5rem;
-      padding: 0.8rem;
-      border-radius: 6px;
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      padding: 0.5rem 1rem;
       cursor: pointer;
-      color: #ffc200;
-      font-weight: bold;
+      border-bottom: 1px solid #ffc200;
+      align-items: center;
     }
-    li.favorite {
-      background: #003060;
-      order: -1; /* Favoriter visas överst */
+    li:hover {
+      background-color: #003466;
     }
     .heart {
-      font-size: 1.2rem;
-      color: #ffc200;
       cursor: pointer;
+      font-size: 1.2rem;
+      margin-left: 5px;
+      color: grey;
       user-select: none;
-      margin-left: 1rem;
-      transition: color 0.3s ease;
     }
     .heart.favorited {
       color: red;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
   <h1>Alla Användare</h1>
   <input type="text" id="search" placeholder="Sök användarnamn..." />
-
   <ul id="user-list"></ul>
 
   <script>
-    const supabase = supabase.createClient(
+    const supabase = window.supabase.createClient(
       'https://jtbcqgjkvzgcjobfbtad.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0YmNxZ2prdnpnY2pvYmZidGFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1MzU0NTksImV4cCI6MjA2OTExMTQ1OX0.ogacm-3bmQI7WDgHZSI2r6jDOrDAGMfI7QtG0avYMTQ'
     );
 
-    const userList = document.getElementById('user-list');
-    const searchInput = document.getElementById('search');
-
     let users = [];
     let favorites = [];
 
-    async function fetchFavorites(userId) {
-      const { data, error } = await supabase
-        .from('Favorites')
-        .select('favorite_user_id')
-        .eq('user_id', userId);
-      if (error) {
-        console.error('Fel vid hämtning av favoriter:', error.message);
-        return [];
-      }
-      return data.map(f => f.favorite_user_id);
+    // Hämta sparade favoriter från localStorage
+    function loadFavorites() {
+      const fav = localStorage.getItem('favorites');
+      favorites = fav ? JSON.parse(fav) : [];
+    }
+
+    function saveFavorites() {
+      localStorage.setItem('favorites', JSON.stringify(favorites));
     }
 
     async function fetchUsers() {
-      const { data, error } = await supabase.from('Profiles').select('id,username');
+      const { data, error } = await supabase.from('"Profiles"').select('id, username');
       if (error) {
-        userList.innerHTML = `<li>Fel vid hämtning av användare: ${error.message}</li>`;
+        alert('Fel vid hämtning av användare: ' + error.message);
         return;
       }
-      users = data;
-      const { data: userData, error: userError } = await supabase.auth.getUser();
-      if (userError) {
-        console.error('Fel vid hämtning av inloggad användare:', userError.message);
-        favorites = [];
-      } else {
-        const userId = userData.user.id;
-        favorites = await fetchFavorites(userId);
-      }
-      renderUsers();
+      users = data.filter(u => u.username); // Filtrera bort utan username
+      sortAndRenderUsers();
     }
 
-    function renderUsers() {
-      const filter = searchInput.value.toLowerCase();
-      let filteredUsers = users.filter(u => u.username.toLowerCase().includes(filter));
+    function sortAndRenderUsers() {
+      // Sortera så favoriter kommer först
+      users.sort((a,b) => {
+        const aFav = favorites.includes(a.id);
+        const bFav = favorites.includes(b.id);
+        if (aFav && !bFav) return -1;
+        if (!aFav && bFav) return 1;
+        return a.username.localeCompare(b.username);
+      });
+      renderUsers(users);
+    }
 
-      // Mark favorites
-      filteredUsers = filteredUsers.map(user => ({
-        ...user,
-        isFavorite: favorites.includes(user.id)
-      }));
+    function renderUsers(list) {
+      const ul = document.getElementById('user-list');
+      ul.innerHTML = '';
+      list.forEach(user => {
+        const li = document.createElement('li');
+        li.textContent = user.username;
+        li.setAttribute('data-id', user.id);
 
-      // Sort så favoriter kommer överst
-      filteredUsers.sort((a, b) => (b.isFavorite ? 1 : 0) - (a.isFavorite ? 1 : 0));
-
-      userList.innerHTML = filteredUsers.map(user => `
-        <li data-id="${user.id}">
-          <span class="username">${user.username}</span>
-          <span class="heart ${user.isFavorite ? 'favorited' : ''}">&#10084;</span>
-        </li>
-      `).join('');
-
-      // Lägg till event listeners
-      document.querySelectorAll('#user-list li').forEach(li => {
-        li.querySelector('.username').addEventListener('click', () => {
-          const userId = li.dataset.id;
-          window.location.href = `chat.html?user_id=${userId}`;
-        });
-
-        li.querySelector('.heart').addEventListener('click', async (e) => {
+        const heart = document.createElement('span');
+        heart.textContent = '♥';
+        heart.classList.add('heart');
+        if (favorites.includes(user.id)) {
+          heart.classList.add('favorited');
+        }
+        heart.addEventListener('click', e => {
           e.stopPropagation();
-          const userId = li.dataset.id;
-          const { data: currentUserData } = await supabase.auth.getUser();
-          if (!currentUserData) {
-            alert('Du måste vara inloggad för att favoritmarkera.');
-            return;
-          }
-          const currentUserId = currentUserData.user.id;
-
-          if (favorites.includes(userId)) {
-            // Ta bort favorit
-            const { error } = await supabase.from('Favorites')
-              .delete()
-              .eq('user_id', currentUserId)
-              .eq('favorite_user_id', userId);
-            if (error) {
-              alert('Fel vid borttagning av favorit: ' + error.message);
-              return;
-            }
-            favorites = favorites.filter(f => f !== userId);
-          } else {
-            // Lägg till favorit
-            const { error } = await supabase.from('Favorites').insert([{ user_id: currentUserId, favorite_user_id: userId }]);
-            if (error) {
-              alert('Fel vid tillägg av favorit: ' + error.message);
-              return;
-            }
-            favorites.push(userId);
-          }
-          renderUsers();
+          toggleFavorite(user.id, heart);
         });
+
+        li.appendChild(heart);
+
+        // Klicka på användarnamn för att öppna chatten med den användaren
+        li.addEventListener('click', () => {
+          window.location.href = `chat.html?to=${user.id}`;
+        });
+
+        ul.appendChild(li);
       });
     }
 
-    searchInput.addEventListener('input', renderUsers);
+    function toggleFavorite(userId, heartEl) {
+      if (favorites.includes(userId)) {
+        favorites = favorites.filter(f => f !== userId);
+        heartEl.classList.remove('favorited');
+      } else {
+        favorites.push(userId);
+        heartEl.classList.add('favorited');
+      }
+      saveFavorites();
+      sortAndRenderUsers();
+    }
 
+    document.getElementById('search').addEventListener('input', e => {
+      const searchTerm = e.target.value.toLowerCase();
+      const filtered = users.filter(u => u.username.toLowerCase().includes(searchTerm));
+      renderUsers(filtered);
+    });
+
+    loadFavorites();
     fetchUsers();
   </script>
 </body>
