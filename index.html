@@ -262,4 +262,28 @@
     <i class="fab fa-telegram-plane" style="margin-right: 8px;"></i>Telegram
   </a>
 </div>
+<div id="policy-section" style="display: none; margin-top: 3rem; text-align: left; background-color: #004a99; padding: 1rem; border-radius: 8px; color: #ffc200;">
+  <h2>Policy & Ansvarsfriskrivning</h2>
+  <p><strong>1. Användarinnehåll:</strong> Allt innehåll som publiceras eller kommuniceras av användare är deras eget ansvar. Vi tar inget ansvar för information, åsikter, eller handlingar som uttrycks av användare på denna plattform.</p>
+  <p><strong>2. Ingen garanti:</strong> Tjänsten tillhandahålls i befintligt skick utan några garantier. Vi garanterar inte tillgänglighet, säkerhet, eller riktighet i det som delas av användare.</p>
+  <p><strong>3. Tredjepartsinnehåll:</strong> Länkar till externa tjänster (t.ex. Telegram) är användarens eget ansvar. Vi ansvarar inte för innehåll eller handlingar på externa webbplatser.</p>
+  <p><strong>4. Ansvarsbegränsning:</strong> Vi ansvarar inte för eventuella direkta eller indirekta skador, förluster eller problem som kan uppstå till följd av användning av plattformen.</p>
+  <p><strong>5. Rapportering:</strong> Om du ser olämpligt innehåll, vänligen kontakta oss så kan vi granska det.</p>
+  <p><strong>6. Ändringar:</strong> Policyn kan uppdateras utan förvarning. Den senaste versionen gäller alltid.</p>
+</div>
+<div style="margin-top: 2rem; text-align: center;">
+  <button onclick="togglePolicy()" style="padding: 10px 20px; font-size: 1rem; border: none; background-color: #336bb8; color: white; border-radius: 25px; cursor: pointer;">
+    Visa policys
+  </button>
+</div>
+<script>
+  function togglePolicy() {
+    const section = document.getElementById('policy-section');
+    if (section.style.display === 'none') {
+      section.style.display = 'block';
+    } else {
+      section.style.display = 'none';
+    }
+  }
+</script>
 
