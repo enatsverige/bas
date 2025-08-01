@@ -270,6 +270,7 @@
   <p><strong>4. Ansvarsbegränsning:</strong> Vi ansvarar inte för eventuella direkta eller indirekta skador, förluster eller problem som kan uppstå till följd av användning av plattformen.</p>
   <p><strong>5. Rapportering:</strong> Om du ser olämpligt innehåll, vänligen kontakta oss så kan vi granska det.</p>
   <p><strong>6. Ändringar:</strong> Policyn kan uppdateras utan förvarning. Den senaste versionen gäller alltid.</p>
+  <p><strong>7. de:</strong> de.</p>
 </div>
 <div style="margin-top: 2rem; text-align: center;">
   <button onclick="togglePolicy()" style="padding: 10px 20px; font-size: 1rem; border: none; background-color: #336bb8; color: white; border-radius: 25px; cursor: pointer;">
@@ -284,6 +285,27 @@
     } else {
       section.style.display = 'none';
     }
+  }
+</script>
+<!-- Kontaktinformation Sektion -->
+<div id="contact-section" style="margin-top: 2rem;">
+  <button onclick="toggleContact()" style="padding: 10px 20px; font-size: 1rem; border: none; background-color: #336bb8; color: white; border-radius: 25px; cursor: pointer;">
+    Visa kontaktinformation
+  </button>
+
+  <div id="contact-info" style="display: none; margin-top: 1rem; background-color: #004a99; padding: 1rem; border-radius: 8px; max-width: 400px; margin-left: auto; margin-right: auto;">
+    <p><strong>Email:</strong> <a href="mailto:enatsverige@yahoo.com" style="color: #ffc200;">enatsverige@yahoo.com</a></p>
+    <p><strong>Telegram:</strong> <a href="https://t.me/roman_von_2111" target="_blank" style="color: #ffc200;">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/8/82/Telegram_logo.svg" alt="Telegram" style="width: 20px; vertical-align: middle; margin-right: 5px;">
+      @roman_von_2111
+    </a></p>
+  </div>
+</div>
+
+<script>
+  function toggleContact() {
+    const contact = document.getElementById('contact-info');
+    contact.style.display = contact.style.display === 'none' ? 'block' : 'none';
   }
 </script>
 
