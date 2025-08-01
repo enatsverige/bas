@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Chat - Enat Sverige</title>
+  <title>Chatta - Enat Sverige</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
     body {
@@ -11,52 +11,44 @@
       background-color: #003578;
       color: #ffc200;
       padding: 2rem;
-      display: flex;
-      flex-direction: column;
       max-width: 600px;
-      margin: 0 auto;
+      margin: auto;
     }
     h1 {
       text-align: center;
       margin-bottom: 1rem;
     }
-    #chat-with {
-      font-weight: bold;
-      margin-bottom: 1rem;
-      text-align: center;
-    }
     #messages {
-      flex-grow: 1;
-      border: 1px solid #ffc200;
-      border-radius: 8px;
-      padding: 1rem;
-      height: 350px;
-      overflow-y: auto;
       background: #004a99;
+      border-radius: 10px;
+      padding: 1rem;
+      max-height: 400px;
+      overflow-y: auto;
       margin-bottom: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
     }
     .message {
-      margin-bottom: 1rem;
-      padding: 0.5rem;
-      border-radius: 6px;
-      max-width: 70%;
+      background: #005ccf;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      max-width: 80%;
       word-wrap: break-word;
+      position: relative;
+      font-size: 1rem;
     }
-    .message.sent {
-      background-color: #336bb8;
-      margin-left: auto;
-      text-align: right;
-    }
-    .message.received {
-      background-color: #ffc200;
-      color: #003578;
-      margin-right: auto;
-      text-align: left;
+    .message.own {
+      background: #e63946;
+      align-self: flex-end;
+      color: white;
     }
     .timestamp {
       font-size: 0.7rem;
-      opacity: 0.7;
-      margin-top: 0.2rem;
+      color: #ffc200cc;
+      position: absolute;
+      bottom: -1.2rem;
+      right: 0.5rem;
     }
     #input-container {
       display: flex;
@@ -64,48 +56,47 @@
     }
     #message-input {
       flex-grow: 1;
-      padding: 0.5rem;
-      border-radius: 6px;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
       border: none;
       font-size: 1rem;
     }
-    #send-button {
-      background-color: #336bb8;
+    #send-btn {
+      background-color: #e63946;
       border: none;
-      padding: 0.6rem 1.2rem;
-      border-radius: 25px;
       color: white;
+      border-radius: 20px;
+      padding: 0 1.2rem;
       cursor: pointer;
-      font-size: 1rem;
+      font-size: 1.1rem;
+      transition: background-color 0.2s;
     }
-    #send-button:hover {
-      background-color: #417fd1;
+    #send-btn:hover {
+      background-color: #d32f2f;
     }
-    #back-link {
+    #back-btn {
       margin-bottom: 1rem;
+      background-color: #336bb8;
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      cursor: pointer;
       display: block;
-      text-decoration: underline;
-      color: #ffc200;
-      cursor: pointer;
     }
-    #unread-indicator {
-      font-weight: bold;
-      color: #e63946;
-      margin-bottom: 1rem;
-      text-align: center;
+    #back-btn:hover {
+      background-color: #417fd1;
     }
   </style>
 </head>
 <body>
-
-  <a id="back-link" href="users.html">&larr; Tillbaka till användare</a>
-  <h1>Chatta med <span id="chat-username"></span></h1>
-  <div id="unread-indicator" style="display:none;">Nya olästa meddelanden!</div>
+  <button id="back-btn">← Tillbaka till användare</button>
+  <h1>Chatta med <span id="chatting-with"></span></h1>
   <div id="messages"></div>
 
   <div id="input-container">
-    <input id="message-input" type="text" placeholder="Skriv ett meddelande..." />
-    <button id="send-button">Skicka</button>
+    <input type="text" id="message-input" placeholder="Skriv ett meddelande..." />
+    <button id="send-btn">Skicka</button>
   </div>
 
   <script>
@@ -114,170 +105,148 @@
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0YmNxZ2prdnpnY2pvYmZidGFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1MzU0NTksImV4cCI6MjA2OTExMTQ1OX0.ogacm-3bmQI7WDgHZSI2r6jDOrDAGMfI7QtG0avYMTQ'
     );
 
-    let currentUser = null;
-    let chatUserId = null;
-    let chatUsername = null;
-    const messagesDiv = document.getElementById('messages');
-    const unreadIndicator = document.getElementById('unread-indicator');
+    let currentUserId = null;
+    let chattingWithId = null;
 
-    // Hämta query-parametrar
-    function getQueryParams() {
-      const params = {};
-      location.search.substring(1).split("&").forEach(pair => {
-        const [key, value] = pair.split("=");
-        params[key] = decodeURIComponent(value);
+    function getQueryParam(param) {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get(param);
+    }
+
+    function formatTimestamp(ts) {
+      const date = new Date(ts);
+      return date.toLocaleString('sv-SE', {
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
       });
-      return params;
     }
 
-    async function loadCurrentUser() {
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (error || !user) {
-        alert('Du måste vara inloggad för att chatta.');
-        window.location.href = 'index.html';
-        return null;
-      }
-      return user;
-    }
-
-    // Hämta och visa meddelanden mellan currentUser och chatUserId
-    async function loadMessages() {
-      if (!currentUser || !chatUserId) return;
-
-      // Hämta alla meddelanden som skickats mellan användarna (både håll)
+    async function fetchMessages() {
       const { data, error } = await supabase
         .from('Messages')
         .select('*')
         .or(
-          `and(sender_id.eq.${currentUser.id},receiver_id.eq.${chatUserId}),and(sender_id.eq.${chatUserId},receiver_id.eq.${currentUser.id})`
+          `and(sender_id.eq.${currentUserId},receiver_id.eq.${chattingWithId}),and(sender_id.eq.${chattingWithId},receiver_id.eq.${currentUserId})`
         )
         .order('created_at', { ascending: true });
 
       if (error) {
         alert('Fel vid hämtning av meddelanden: ' + error.message);
-        return;
+        return [];
       }
-
-      messagesDiv.innerHTML = '';
-
-      data.forEach(msg => {
-        const msgDiv = document.createElement('div');
-        msgDiv.classList.add('message');
-        msgDiv.classList.add(msg.sender_id === currentUser.id ? 'sent' : 'received');
-        msgDiv.textContent = msg.content;
-
-        const ts = new Date(msg.created_at);
-        const tsSpan = document.createElement('div');
-        tsSpan.className = 'timestamp';
-        tsSpan.textContent = ts.toLocaleString('sv-SE', {
-          year: '2-digit',
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit'
-        });
-
-        msgDiv.appendChild(tsSpan);
-        messagesDiv.appendChild(msgDiv);
-      });
-
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
-
-      // Markera olästa meddelanden från chatUserId som lästa
-      await markMessagesRead();
+      return data || [];
     }
 
-    async function markMessagesRead() {
-      // Uppdatera Messages som är olästa och skickade till currentUser från chatUserId
-      await supabase
+    async function markMessagesRead(messages) {
+      const unreadMessages = messages.filter(m => !m.read && m.receiver_id === currentUserId);
+      if (unreadMessages.length === 0) return;
+
+      const ids = unreadMessages.map(m => m.id);
+      const { error } = await supabase
         .from('Messages')
         .update({ read: true })
-        .eq('receiver_id', currentUser.id)
-        .eq('sender_id', chatUserId)
-        .eq('read', false);
-      
-      // Dölj indikatorn efter att markera som lästa
-      unreadIndicator.style.display = 'none';
+        .in('id', ids);
+
+      if (error) {
+        console.error('Fel vid uppdatering av lästa meddelanden:', error.message);
+      }
     }
 
-    async function sendMessage() {
-      const input = document.getElementById('message-input');
-      const content = input.value.trim();
-      if (!content) return;
+    async function sendMessage(text) {
+      if (!text.trim()) return;
 
       const { error } = await supabase
         .from('Messages')
         .insert([{
-          sender_id: currentUser.id,
-          receiver_id: chatUserId,
-          content,
-          read: false
+          sender_id: currentUserId,
+          receiver_id: chattingWithId,
+          content: text.trim(),
+          read: false,
+          created_at: new Date().toISOString()
         }]);
 
       if (error) {
         alert('Fel vid sändning av meddelande: ' + error.message);
-        return;
+        return false;
       }
-
-      input.value = '';
-      await loadMessages();
+      return true;
     }
 
-    // Kontrollera om det finns olästa meddelanden från chatUserId till currentUser
-    async function checkUnreadMessages() {
-      if (!currentUser || !chatUserId) return;
+    function renderMessages(messages) {
+      const container = document.getElementById('messages');
+      container.innerHTML = '';
 
-      const { data, error } = await supabase
-        .from('Messages')
-        .select('id')
-        .eq('receiver_id', currentUser.id)
-        .eq('sender_id', chatUserId)
-        .eq('read', false);
+      messages.forEach(msg => {
+        const div = document.createElement('div');
+        div.className = 'message';
+        if (msg.sender_id === currentUserId) div.classList.add('own');
+        div.textContent = msg.content;
 
-      if (error) {
-        console.error('Fel vid kontroll av olästa meddelanden:', error.message);
-        return;
-      }
+        const timeSpan = document.createElement('span');
+        timeSpan.className = 'timestamp';
+        timeSpan.textContent = formatTimestamp(msg.created_at);
+        div.appendChild(timeSpan);
 
-      unreadIndicator.style.display = data.length > 0 ? 'block' : 'none';
+        container.appendChild(div);
+      });
+
+      container.scrollTop = container.scrollHeight;
+    }
+
+    async function refreshMessages() {
+      const messages = await fetchMessages();
+      renderMessages(messages);
+      await markMessagesRead(messages);
     }
 
     async function main() {
-      currentUser = await loadCurrentUser();
-      if (!currentUser) return;
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error || !user) {
+        alert('Du måste vara inloggad för att chatta.');
+        window.location.href = 'index.html';
+        return;
+      }
+      currentUserId = user.id;
 
-      const params = getQueryParams();
-      chatUserId = params.user;
-      chatUsername = params.username;
+      chattingWithId = getQueryParam('user');
+      const chattingWithName = getQueryParam('username');
 
-      if (!chatUserId || !chatUsername) {
-        alert('Fel: ingen användare att chatta med');
+      if (!chattingWithId || !chattingWithName) {
+        alert('Fel i chatten: ingen användare vald.');
         window.location.href = 'users.html';
         return;
       }
 
-      document.getElementById('chat-username').textContent = chatUsername;
+      document.getElementById('chatting-with').textContent = decodeURIComponent(chattingWithName);
 
-      await loadMessages();
+      document.getElementById('send-btn').onclick = async () => {
+        const input = document.getElementById('message-input');
+        const text = input.value;
+        const sent = await sendMessage(text);
+        if (sent) {
+          input.value = '';
+          await refreshMessages();
+        }
+      };
 
-      // Kolla olästa meddelanden var 5 sekunder
-      setInterval(checkUnreadMessages, 5000);
-      await checkUnreadMessages();
-
-      document.getElementById('send-button').onclick = sendMessage;
-
-      // Skicka meddelande även på Enter
-      document.getElementById('message-input').addEventListener('keydown', (e) => {
+      document.getElementById('message-input').addEventListener('keydown', async e => {
         if (e.key === 'Enter') {
-          sendMessage();
+          e.preventDefault();
+          document.getElementById('send-btn').click();
         }
       });
+
+      document.getElementById('back-btn').onclick = () => {
+        window.location.href = 'users.html';
+      };
+
+      await refreshMessages();
+
+      // Polla nya meddelanden var 3e sekund
+      setInterval(refreshMessages, 3000);
     }
 
     main();
   </script>
-
 </body>
 </html>
-
