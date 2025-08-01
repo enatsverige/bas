@@ -72,6 +72,11 @@
       margin: 0.5rem 0;
     }
 
+    .message.self {
+      text-align: right;
+      color: #aaddff;
+    }
+
     #chat-input {
       width: 300px;
       padding: 0.5rem;
@@ -242,7 +247,7 @@
 
       const { data, error } = await supabase
         .from("Messages")
-        .select("*")
+        .select("*, sender:sender_id(username)")
         .or(`and(sender_id.eq.${currentUser.id},receiver_id.eq.${selectedUserId}),and(sender_id.eq.${selectedUserId},receiver_id.eq.${currentUser.id})`)
         .order("sent_at", { ascending: true });
 
@@ -258,9 +263,15 @@
         const date = new Date(msg.sent_at);
         const dateStr = date.toLocaleDateString("sv-SE") + " " + date.toLocaleTimeString("sv-SE");
 
+        const senderName = msg.sender?.username || "Okänd";
+
         const div = document.createElement("div");
         div.className = "message";
-        div.textContent = `[${dateStr}] ${msg.content}`;
+        if (msg.sender_id === currentUser.id) {
+          div.classList.add("self");
+        }
+
+        div.textContent = `[${dateStr}] ${senderName}: ${msg.content}`;
         chatBox.appendChild(div);
       });
 
