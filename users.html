@@ -13,8 +13,8 @@
       text-align: center;
     }
     input {
-      width: 300px;
-      padding: 0.5rem;
+      width: 380px;
+      padding: 0.6rem;
       margin-bottom: 1rem;
       border-radius: 8px;
       border: none;
@@ -38,6 +38,12 @@
       color: #ffc200;
       text-decoration: none;
       font-weight: bold;
+    }
+    .user-info {
+      text-align: left;
+    }
+    .live-counter {
+      font-size: 0.8rem;
     }
   </style>
 </head>
@@ -80,12 +86,7 @@
         .select("favorited_id")
         .eq("user_id", currentUser.id);
 
-      if (favErr) {
-        console.error("Fel vid hämtning av favoriter:", favErr.message);
-        return;
-      }
-
-      const favorites = favs.map(f => f.favorited_id);
+      const favorites = favs ? favs.map(f => f.favorited_id) : [];
 
       usersList.innerHTML = "";
       profiles.forEach(user => {
@@ -93,16 +94,18 @@
         const container = document.createElement("div");
         container.className = "user-card";
 
-        const userDiv = document.createElement("div");
+        const infoDiv = document.createElement("div");
+        infoDiv.className = "user-info";
+
         const a = document.createElement("a");
         a.href = `chat.html?user=${user.id}`;
         a.textContent = user.username;
-        userDiv.appendChild(a);
+        infoDiv.appendChild(a);
 
         const ageSpan = document.createElement("div");
-        ageSpan.style.fontSize = "0.8rem";
+        ageSpan.className = "live-counter";
         ageSpan.id = "age-" + user.id;
-        userDiv.appendChild(ageSpan);
+        infoDiv.appendChild(ageSpan);
 
         const heart = document.createElement("div");
         heart.innerHTML = favorites.includes(user.id) ? "❤️" : "🤍";
@@ -117,7 +120,7 @@
           }
         };
 
-        container.appendChild(userDiv);
+        container.appendChild(infoDiv);
         container.appendChild(heart);
         usersList.appendChild(container);
 
@@ -129,7 +132,7 @@
           const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
           const minutes = Math.floor((diff / (1000 * 60)) % 60);
           const seconds = Math.floor((diff / 1000) % 60);
-          ageSpan.textContent = `Skapad: ${days}d ${hours}h ${minutes}m ${seconds}s`;
+          ageSpan.textContent = `Skapad: ${days}d ${hours}h ${minutes}m ${seconds}s sedan`;
         }, 1000);
       });
     }
