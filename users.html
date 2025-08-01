@@ -71,7 +71,7 @@
       if (!currentUser) return;
 
       const { data: profiles, error: profileErr } = await supabase
-        .from("Profiles")
+        .from('"Profiles"') // FIX: exact casing with quotes
         .select("id, username, created_at")
         .neq("id", currentUser.id)
         .order("created_at", { ascending: true });
