@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="sv">
 <head>
@@ -255,112 +256,6 @@
       });
     }
   </script>
-  <!-- --- ADD BELOW THIS COMMENT --- -->
-
-<!-- Game toggle button -->
-<div style="margin-top: 2rem;">
-  <button onclick="toggleGame()" style="padding: 10px 20px; font-size: 1rem; border: none; background-color: #336bb8; color: white; border-radius: 25px; cursor: pointer;">
-    Spela spelet!
-  </button>
-</div>
-
-<!-- Game container -->
-<div id="gameContainer" style="display: none; margin-top: 2rem;">
-  <div id="game" style="position: relative; width: 300px; height: 150px; margin: 0 auto; background-color: #eee; overflow: hidden; border-radius: 10px;">
-    <img id="player" src="dino.png" style="position: absolute; bottom: 0; left: 50px; width: 40px;" />
-    <img id="obstacle" src="car.png" style="position: absolute; bottom: 0; right: -60px; width: 60px;" />
-  </div>
-  <div style="margin-top: 10px; font-weight: bold;">Poäng: <span id="score">0</span></div>
-  <button id="restartBtn" onclick="startGame()" style="display: none; margin-top: 10px;">Starta om</button>
-</div>
-
-<!-- Game script -->
-<script>
-  let player, obstacle, scoreElem, restartBtn;
-  let jumpAudio, scoreAudios, crashAudios;
-  let isJumping = false, score = 0, gameLoop, speed = 5;
-
-  function toggleGame() {
-    const gameContainer = document.getElementById('gameContainer');
-    gameContainer.style.display = gameContainer.style.display === 'none' ? 'block' : 'none';
-  }
-
-  function startGame() {
-    player = document.getElementById('player');
-    obstacle = document.getElementById('obstacle');
-    scoreElem = document.getElementById('score');
-    restartBtn = document.getElementById('restartBtn');
-
-    jumpAudio = new Audio('jump.mp3');
-    scoreAudios = [new Audio('score1.mp3'), new Audio('score2.mp3')];
-    crashAudios = [new Audio('crashdeath.mp3'), new Audio('carcrash.mp3')];
-
-    score = 0;
-    scoreElem.textContent = score;
-    restartBtn.style.display = 'none';
-    obstacle.style.left = '100%';
-
-    gameLoop = setInterval(updateGame, 20);
-    document.addEventListener('keydown', jump);
-    document.addEventListener('touchstart', jump);
-  }
-
-  function jump() {
-    if (isJumping) return;
-    isJumping = true;
-    jumpAudio.currentTime = 0;
-    jumpAudio.play();
-
-    let up = 0;
-    const jumpInterval = setInterval(() => {
-      if (up >= 30) {
-        clearInterval(jumpInterval);
-        let down = setInterval(() => {
-          if (up <= 0) {
-            clearInterval(down);
-            isJumping = false;
-          } else {
-            up -= 2;
-            player.style.bottom = up + 'px';
-          }
-        }, 10);
-      } else {
-        up += 2;
-        player.style.bottom = up + 'px';
-      }
-    }, 10);
-  }
-
-  function updateGame() {
-    const obstacleX = obstacle.offsetLeft;
-    if (obstacleX < -60) {
-      obstacle.style.left = '100%';
-      score++;
-      scoreElem.textContent = score;
-      const sound = scoreAudios[Math.floor(Math.random() * scoreAudios.length)];
-      sound.currentTime = 0;
-      sound.play();
-      speed += 0.5;
-    } else {
-      obstacle.style.left = (obstacleX - speed) + 'px';
-    }
-
-    const playerRect = player.getBoundingClientRect();
-    const obstacleRect = obstacle.getBoundingClientRect();
-
-    if (
-      playerRect.bottom >= obstacleRect.top &&
-      playerRect.right > obstacleRect.left &&
-      playerRect.left < obstacleRect.right
-    ) {
-      clearInterval(gameLoop);
-      crashAudios[Math.floor(Math.random() * crashAudios.length)].play();
-      restartBtn.style.display = 'inline-block';
-      document.removeEventListener('keydown', jump);
-      document.removeEventListener('touchstart', jump);
-    }
-  }
-</script>
 </body>
 </html>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
