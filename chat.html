@@ -72,13 +72,6 @@
       margin: 0.5rem 0;
     }
 
-    .toggle {
-      color: #ffc200;
-      cursor: pointer;
-      font-size: 0.9rem;
-      margin-left: 4px;
-    }
-
     #chat-input {
       width: 300px;
       padding: 0.5rem;
@@ -130,14 +123,24 @@
       const { data: authData } = await supabase.auth.getUser();
       currentUser = authData.user;
 
-      const { data: profiles } = await supabase
+      const { data: profiles, error: profilesError } = await supabase
         .from("Profiles")
         .select("id, username");
 
-      const { data: favData } = await supabase
+      if (profilesError) {
+        console.error("Fel vid hämtning av användare:", profilesError.message);
+        return;
+      }
+
+      const { data: favData, error: favError } = await supabase
         .from("Favorites")
         .select("favorite_id")
         .eq("user_id", currentUser.id);
+
+      if (favError) {
+        console.error("Fel vid hämtning av favoriter:", favError.message);
+        return;
+      }
 
       favorites = favData.map(f => f.favorite_id);
 
@@ -169,46 +172,69 @@
       const list = document.getElementById("user-list");
       list.innerHTML = "";
 
-      users.forEach(user => {
-        const item = document.createElement("div");
-        item.className = "user-item";
-        item.innerHTML = `
-          <span>${user.username}</span>
-          <span class="heart" data-id="${user.id}">♥</span>
-        `;
+      const maxVisible = 3;
+      let expanded = false;
 
-        if (favorites.includes(user.id)) {
-          item.querySelector(".heart").classList.add("favorited");
-        }
+      const render = () => {
+        list.innerHTML = "";
+        const toShow = expanded ? users : users.slice(0, maxVisible);
 
-        item.addEventListener("click", () => {
-          selectedUserId = user.id;
-          loadMessages();
-        });
+        toShow.forEach(user => {
+          const item = document.createElement("div");
+          item.className = "user-item";
+          item.innerHTML = `
+            <span>${user.username}</span>
+            <span class="heart" data-id="${user.id}">♥</span>
+          `;
 
-        item.querySelector(".heart").addEventListener("click", async (e) => {
-          e.stopPropagation();
-          const heart = e.target;
-          const userId = heart.getAttribute("data-id");
-
-          if (heart.classList.contains("favorited")) {
-            await supabase.from("Favorites")
-              .delete()
-              .match({ user_id: currentUser.id, favorite_id: userId });
-            heart.classList.remove("favorited");
-            favorites = favorites.filter(favId => favId !== userId);
-          } else {
-            await supabase.from("Favorites")
-              .insert({ user_id: currentUser.id, favorite_id: userId });
-            heart.classList.add("favorited");
-            favorites.push(userId);
+          if (favorites.includes(user.id)) {
+            item.querySelector(".heart").classList.add("favorited");
           }
 
-          await loadUsers();
+          item.addEventListener("click", () => {
+            selectedUserId = user.id;
+            loadMessages();
+          });
+
+          item.querySelector(".heart").addEventListener("click", async (e) => {
+            e.stopPropagation();
+            const heart = e.target;
+            const userId = heart.getAttribute("data-id");
+
+            if (heart.classList.contains("favorited")) {
+              await supabase.from("Favorites")
+                .delete()
+                .match({ user_id: currentUser.id, favorite_id: userId });
+              heart.classList.remove("favorited");
+              favorites = favorites.filter(favId => favId !== userId);
+            } else {
+              await supabase.from("Favorites")
+                .insert({ user_id: currentUser.id, favorite_id: userId });
+              heart.classList.add("favorited");
+              favorites.push(userId);
+            }
+
+            await loadUsers();
+          });
+
+          list.appendChild(item);
         });
 
-        list.appendChild(item);
-      });
+        if (users.length > maxVisible) {
+          const toggle = document.createElement("div");
+          toggle.style.textAlign = "center";
+          toggle.style.marginTop = "0.5rem";
+          toggle.style.cursor = "pointer";
+          toggle.textContent = expanded ? "Visa färre" : "Visa fler";
+          toggle.addEventListener("click", () => {
+            expanded = !expanded;
+            render();
+          });
+          list.appendChild(toggle);
+        }
+      };
+
+      render();
     }
 
     async function loadMessages() {
@@ -232,35 +258,9 @@
         const date = new Date(msg.sent_at);
         const dateStr = date.toLocaleDateString("sv-SE") + " " + date.toLocaleTimeString("sv-SE");
 
-        const fullText = `[${dateStr}] ${msg.content}`;
         const div = document.createElement("div");
         div.className = "message";
-
-        if (fullText.length > 300) {
-          const shortText = fullText.substring(0, 300) + "...";
-          const span = document.createElement("span");
-          span.textContent = shortText;
-
-          const toggle = document.createElement("span");
-          toggle.textContent = " Visa mer";
-          toggle.className = "toggle";
-
-          toggle.addEventListener("click", () => {
-            if (span.textContent === shortText) {
-              span.textContent = fullText;
-              toggle.textContent = " Visa mindre";
-            } else {
-              span.textContent = shortText;
-              toggle.textContent = " Visa mer";
-            }
-          });
-
-          div.appendChild(span);
-          div.appendChild(toggle);
-        } else {
-          div.textContent = fullText;
-        }
-
+        div.textContent = `[${dateStr}] ${msg.content}`;
         chatBox.appendChild(div);
       });
 
@@ -272,13 +272,18 @@
       const content = input.value.trim();
       if (!content || !selectedUserId) return;
 
-      await supabase.from("Messages").insert({
+      const { error } = await supabase.from("Messages").insert({
         sender_id: currentUser.id,
         receiver_id: selectedUserId,
         content,
         sent_at: new Date().toISOString(),
         read: false
       });
+
+      if (error) {
+        console.error("Fel vid sändning av meddelande:", error.message);
+        return;
+      }
 
       input.value = "";
       loadMessages();
