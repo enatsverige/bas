@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Användare - Enat Sverige</title>
+  <title>Alla Användare - Enat Sverige</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
     body {
@@ -11,254 +11,169 @@
       background-color: #003578;
       color: #ffc200;
       padding: 2rem;
+      max-width: 600px;
+      margin: auto;
     }
     h1 {
       text-align: center;
-      font-size: 2.5rem;
       margin-bottom: 1rem;
     }
     #search {
       width: 100%;
-      max-width: 400px;
       padding: 0.5rem;
-      font-size: 1rem;
       border-radius: 6px;
       border: none;
-      margin: 0 auto 1.5rem auto;
-      display: block;
+      margin-bottom: 1rem;
+      font-size: 1rem;
+      color: #003578;
     }
     ul {
-      list-style: none;
+      list-style-type: none;
       padding: 0;
-      max-width: 400px;
-      margin: 0 auto;
+      margin: 0;
     }
     li {
       background: #004a99;
-      padding: 0.75rem 1rem;
       margin-bottom: 0.5rem;
-      border-radius: 8px;
+      padding: 0.8rem;
+      border-radius: 6px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       cursor: pointer;
-      transition: background-color 0.2s;
-    }
-    li:hover {
-      background: #005ccf;
-    }
-    .username {
-      flex-grow: 1;
       color: #ffc200;
-      text-decoration: underline;
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
+      font-weight: bold;
+    }
+    li.favorite {
+      background: #003060;
+      order: -1; /* Favoriter visas överst */
     }
     .heart {
-      font-size: 1.4rem;
-      color: #ccc;
+      font-size: 1.2rem;
+      color: #ffc200;
       cursor: pointer;
       user-select: none;
-      margin-left: 10px;
-      transition: color 0.3s;
+      margin-left: 1rem;
+      transition: color 0.3s ease;
     }
     .heart.favorited {
-      color: #e63946; /* rött hjärta */
-    }
-    .unread-dot {
-      width: 10px;
-      height: 10px;
-      background-color: #e63946;
-      border-radius: 50%;
-      display: inline-block;
-      margin-left: 8px;
-    }
-    #logout {
-      margin: 1rem auto;
-      display: block;
-      background-color: #336bb8;
-      color: white;
-      border: none;
-      padding: 0.75rem 1.5rem;
-      font-size: 1rem;
-      border-radius: 25px;
-      cursor: pointer;
-      max-width: 400px;
-    }
-    #logout:hover {
-      background-color: #417fd1;
-    }
-    #welcome {
-      max-width: 400px;
-      margin: 0 auto 1.5rem auto;
-      font-weight: bold;
-      font-size: 1.2rem;
-      text-align: center;
+      color: red;
     }
   </style>
 </head>
 <body>
-
   <h1>Alla Användare</h1>
-  <div id="welcome"></div>
-  <input type="text" id="search" placeholder="Sök användare..." />
+  <input type="text" id="search" placeholder="Sök användarnamn..." />
 
   <ul id="user-list"></ul>
 
-  <button id="logout">Logga ut</button>
-
   <script>
-    const supabase = window.supabase.createClient(
+    const supabase = supabase.createClient(
       'https://jtbcqgjkvzgcjobfbtad.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0YmNxZ2prdnpnY2pvYmZidGFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1MzU0NTksImV4cCI6MjA2OTExMTQ1OX0.ogacm-3bmQI7WDgHZSI2r6jDOrDAGMfI7QtG0avYMTQ'
     );
 
-    let currentUserId = null;
-    let favoriteUserIds = new Set();
-    let allUsers = [];
-    let unreadUserIds = new Set();
+    const userList = document.getElementById('user-list');
+    const searchInput = document.getElementById('search');
 
-    async function loadFavorites() {
+    let users = [];
+    let favorites = [];
+
+    async function fetchFavorites(userId) {
       const { data, error } = await supabase
         .from('Favorites')
-        .select('favorited_user_id')
-        .eq('user_id', currentUserId);
-      if (!error) {
-        favoriteUserIds = new Set(data.map(fav => fav.favorited_user_id));
-      }
-    }
-
-    async function loadUnreadMessages() {
-      // Hämta användare som har skickat olästa meddelanden till dig
-      const { data, error } = await supabase
-        .from('Messages')
-        .select('sender_id, read')
-        .eq('receiver_id', currentUserId)
-        .eq('read', false);
-
-      if (!error && data) {
-        unreadUserIds = new Set(data.map(m => m.sender_id));
-      }
-    }
-
-    async function toggleFavorite(favoritedUserId, heartEl) {
-      if (favoriteUserIds.has(favoritedUserId)) {
-        const { error } = await supabase
-          .from('Favorites')
-          .delete()
-          .eq('user_id', currentUserId)
-          .eq('favorited_user_id', favoritedUserId);
-        if (!error) {
-          favoriteUserIds.delete(favoritedUserId);
-          renderUsers(allUsers);
-        }
-      } else {
-        const { error } = await supabase
-          .from('Favorites')
-          .insert([{ user_id: currentUserId, favorited_user_id: favoritedUserId }]);
-        if (!error) {
-          favoriteUserIds.add(favoritedUserId);
-          renderUsers(allUsers);
-        }
-      }
-    }
-
-    async function fetchUsers(searchTerm = '') {
-      let query = supabase
-        .from('profiles')
-        .select('id, username, firstname')
-        .neq('id', currentUserId)
-        .order('username', { ascending: true });
-
-      if (searchTerm) {
-        query = query.ilike('username', `%${searchTerm}%`);
-      }
-
-      const { data, error } = await query;
-
+        .select('favorite_user_id')
+        .eq('user_id', userId);
       if (error) {
-        alert('Fel vid hämtning av användare: ' + error.message);
+        console.error('Fel vid hämtning av favoriter:', error.message);
         return [];
       }
-      return data || [];
+      return data.map(f => f.favorite_user_id);
     }
 
-    function renderUsers(users) {
-      const list = document.getElementById('user-list');
-      list.innerHTML = '';
-
-      users.sort((a, b) => {
-        const aFav = favoriteUserIds.has(a.id) ? 0 : 1;
-        const bFav = favoriteUserIds.has(b.id) ? 0 : 1;
-        if (aFav !== bFav) return aFav - bFav;
-        return a.username.localeCompare(b.username);
-      });
-
-      users.forEach(user => {
-        const li = document.createElement('li');
-
-        const usernameSpan = document.createElement('span');
-        usernameSpan.className = 'username';
-        usernameSpan.onclick = () => {
-          window.location.href = `chat.html?user=${user.id}&username=${encodeURIComponent(user.username)}`;
-        };
-        usernameSpan.textContent = user.username + (user.firstname ? ` (${user.firstname})` : '');
-
-        // Lägg till oläst-prick om användaren har olästa meddelanden
-        if (unreadUserIds.has(user.id)) {
-          const dot = document.createElement('span');
-          dot.className = 'unread-dot';
-          usernameSpan.appendChild(dot);
-        }
-
-        const heart = document.createElement('span');
-        heart.innerHTML = '♥';
-        heart.className = 'heart';
-        if (favoriteUserIds.has(user.id)) {
-          heart.classList.add('favorited');
-        }
-        heart.onclick = (e) => {
-          e.stopPropagation();
-          toggleFavorite(user.id, heart);
-        };
-
-        li.appendChild(usernameSpan);
-        li.appendChild(heart);
-        list.appendChild(li);
-      });
-    }
-
-    async function main() {
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (error || !user) {
-        alert('Du måste vara inloggad för att se användare.');
-        window.location.href = 'index.html';
+    async function fetchUsers() {
+      const { data, error } = await supabase.from('Profiles').select('id,username');
+      if (error) {
+        userList.innerHTML = `<li>Fel vid hämtning av användare: ${error.message}</li>`;
         return;
       }
-      currentUserId = user.id;
-
-      document.getElementById('welcome').textContent = `Välkommen, ${user.user_metadata?.firstname || user.email}!`;
-
-      await loadFavorites();
-      await loadUnreadMessages();
-
-      allUsers = await fetchUsers();
-      renderUsers(allUsers);
-
-      document.getElementById('search').addEventListener('input', async (e) => {
-        const term = e.target.value.trim();
-        allUsers = await fetchUsers(term);
-        renderUsers(allUsers);
-      });
-
-      document.getElementById('logout').onclick = async () => {
-        await supabase.auth.signOut();
-        window.location.href = 'index.html';
-      };
+      users = data;
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError) {
+        console.error('Fel vid hämtning av inloggad användare:', userError.message);
+        favorites = [];
+      } else {
+        const userId = userData.user.id;
+        favorites = await fetchFavorites(userId);
+      }
+      renderUsers();
     }
 
-    main();
+    function renderUsers() {
+      const filter = searchInput.value.toLowerCase();
+      let filteredUsers = users.filter(u => u.username.toLowerCase().includes(filter));
+
+      // Mark favorites
+      filteredUsers = filteredUsers.map(user => ({
+        ...user,
+        isFavorite: favorites.includes(user.id)
+      }));
+
+      // Sort så favoriter kommer överst
+      filteredUsers.sort((a, b) => (b.isFavorite ? 1 : 0) - (a.isFavorite ? 1 : 0));
+
+      userList.innerHTML = filteredUsers.map(user => `
+        <li data-id="${user.id}">
+          <span class="username">${user.username}</span>
+          <span class="heart ${user.isFavorite ? 'favorited' : ''}">&#10084;</span>
+        </li>
+      `).join('');
+
+      // Lägg till event listeners
+      document.querySelectorAll('#user-list li').forEach(li => {
+        li.querySelector('.username').addEventListener('click', () => {
+          const userId = li.dataset.id;
+          window.location.href = `chat.html?user_id=${userId}`;
+        });
+
+        li.querySelector('.heart').addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const userId = li.dataset.id;
+          const { data: currentUserData } = await supabase.auth.getUser();
+          if (!currentUserData) {
+            alert('Du måste vara inloggad för att favoritmarkera.');
+            return;
+          }
+          const currentUserId = currentUserData.user.id;
+
+          if (favorites.includes(userId)) {
+            // Ta bort favorit
+            const { error } = await supabase.from('Favorites')
+              .delete()
+              .eq('user_id', currentUserId)
+              .eq('favorite_user_id', userId);
+            if (error) {
+              alert('Fel vid borttagning av favorit: ' + error.message);
+              return;
+            }
+            favorites = favorites.filter(f => f !== userId);
+          } else {
+            // Lägg till favorit
+            const { error } = await supabase.from('Favorites').insert([{ user_id: currentUserId, favorite_user_id: userId }]);
+            if (error) {
+              alert('Fel vid tillägg av favorit: ' + error.message);
+              return;
+            }
+            favorites.push(userId);
+          }
+          renderUsers();
+        });
+      });
+    }
+
+    searchInput.addEventListener('input', renderUsers);
+
+    fetchUsers();
   </script>
 </body>
 </html>
