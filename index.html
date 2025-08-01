@@ -256,6 +256,104 @@
   </script>
 </body>
 </html>
+<script>
+  const player = document.getElementById("player");
+  const obstacle = document.getElementById("obstacle");
+  const scoreDisplay = document.getElementById("score");
+  const restartBtn = document.getElementById("restartBtn");
+
+  let score = 0;
+  let jumping = false;
+  let gameOver = false;
+
+  // Sounds
+  const jumpSound = new Audio("jump.mp3");
+  const crashDeathSound = new Audio("crashdeath.mp3");
+  const carCrashSound = new Audio("carcrash.mp3");
+
+  const scoreSounds = [
+    new Audio("score1.mp3"),
+    new Audio("score2.mp3")
+  ];
+
+  function playRandomScoreSound() {
+    const sound = scoreSounds[Math.floor(Math.random() * scoreSounds.length)];
+    sound.play();
+  }
+
+  function playDeathSounds() {
+    crashDeathSound.play();
+    carCrashSound.play();
+  }
+
+  function jump() {
+    if (jumping || gameOver) return;
+    jumping = true;
+    player.classList.add("jump");
+    jumpSound.play();
+
+    setTimeout(() => {
+      player.classList.remove("jump");
+      jumping = false;
+    }, 500);
+  }
+
+  document.addEventListener("keydown", e => {
+    if (e.code === "Space") jump();
+  });
+
+  document.addEventListener("touchstart", jump); // 👈 Mobile tap support
+
+  function checkCollision() {
+    const playerRect = player.getBoundingClientRect();
+    const obstacleRect = obstacle.getBoundingClientRect();
+
+    return !(
+      playerRect.top > obstacleRect.bottom ||
+      playerRect.bottom < obstacleRect.top ||
+      playerRect.right < obstacleRect.left ||
+      playerRect.left > obstacleRect.right
+    );
+  }
+
+  let obstacleX = window.innerWidth;
+
+  function moveObstacle() {
+    if (gameOver) return;
+
+    obstacleX -= 5;
+    if (obstacleX < -150) {
+      obstacleX = window.innerWidth;
+      score++;
+      scoreDisplay.textContent = "Poäng: " + score;
+      playRandomScoreSound();
+    }
+
+    obstacle.style.left = obstacleX + "px";
+
+    if (checkCollision()) {
+      playDeathSounds();
+      scoreDisplay.textContent = "Game Over! Poäng: " + score;
+      restartBtn.style.display = "inline-block";
+      gameOver = true;
+      return;
+    }
+
+    requestAnimationFrame(moveObstacle);
+  }
+
+  restartBtn.addEventListener("click", () => {
+    score = 0;
+    obstacleX = window.innerWidth;
+    scoreDisplay.textContent = "Poäng: 0";
+    restartBtn.style.display = "none";
+    gameOver = false;
+    moveObstacle();
+  });
+
+  moveObstacle(); // Start game
+</script>
+
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <div style="margin-top: 3rem; text-align: center;">
   <a href="https://t.me/+U9VxCQMwfL8yM2Zk" target="_blank" style="color: #ffc200; text-decoration: none; font-size: 1.2rem;">
