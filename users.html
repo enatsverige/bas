@@ -51,6 +51,9 @@
       flex-grow: 1;
       color: #ffc200;
       text-decoration: underline;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
     }
     .heart {
       font-size: 1.4rem;
@@ -61,7 +64,15 @@
       transition: color 0.3s;
     }
     .heart.favorited {
-      color: #e63946;
+      color: #e63946; /* rött hjärta */
+    }
+    .unread-dot {
+      width: 10px;
+      height: 10px;
+      background-color: #e63946;
+      border-radius: 50%;
+      display: inline-block;
+      margin-left: 8px;
     }
     #logout {
       margin: 1rem auto;
@@ -105,6 +116,8 @@
 
     let currentUserId = null;
     let favoriteUserIds = new Set();
+    let allUsers = [];
+    let unreadUserIds = new Set();
 
     async function loadFavorites() {
       const { data, error } = await supabase
@@ -116,9 +129,21 @@
       }
     }
 
+    async function loadUnreadMessages() {
+      // Hämta användare som har skickat olästa meddelanden till dig
+      const { data, error } = await supabase
+        .from('Messages')
+        .select('sender_id, read')
+        .eq('receiver_id', currentUserId)
+        .eq('read', false);
+
+      if (!error && data) {
+        unreadUserIds = new Set(data.map(m => m.sender_id));
+      }
+    }
+
     async function toggleFavorite(favoritedUserId, heartEl) {
       if (favoriteUserIds.has(favoritedUserId)) {
-        // Remove favorite
         const { error } = await supabase
           .from('Favorites')
           .delete()
@@ -126,23 +151,22 @@
           .eq('favorited_user_id', favoritedUserId);
         if (!error) {
           favoriteUserIds.delete(favoritedUserId);
-          heartEl.classList.remove('favorited');
+          renderUsers(allUsers);
         }
       } else {
-        // Add favorite
         const { error } = await supabase
           .from('Favorites')
           .insert([{ user_id: currentUserId, favorited_user_id: favoritedUserId }]);
         if (!error) {
           favoriteUserIds.add(favoritedUserId);
-          heartEl.classList.add('favorited');
+          renderUsers(allUsers);
         }
       }
     }
 
     async function fetchUsers(searchTerm = '') {
       let query = supabase
-        .from('Profiles')
+        .from('profiles')
         .select('id, username, firstname')
         .neq('id', currentUserId)
         .order('username', { ascending: true });
@@ -164,25 +188,38 @@
       const list = document.getElementById('user-list');
       list.innerHTML = '';
 
+      users.sort((a, b) => {
+        const aFav = favoriteUserIds.has(a.id) ? 0 : 1;
+        const bFav = favoriteUserIds.has(b.id) ? 0 : 1;
+        if (aFav !== bFav) return aFav - bFav;
+        return a.username.localeCompare(b.username);
+      });
+
       users.forEach(user => {
         const li = document.createElement('li');
 
         const usernameSpan = document.createElement('span');
-        usernameSpan.textContent = user.username + (user.firstname ? ` (${user.firstname})` : '');
         usernameSpan.className = 'username';
         usernameSpan.onclick = () => {
-          // Gå till chat med denna användare
           window.location.href = `chat.html?user=${user.id}&username=${encodeURIComponent(user.username)}`;
         };
+        usernameSpan.textContent = user.username + (user.firstname ? ` (${user.firstname})` : '');
+
+        // Lägg till oläst-prick om användaren har olästa meddelanden
+        if (unreadUserIds.has(user.id)) {
+          const dot = document.createElement('span');
+          dot.className = 'unread-dot';
+          usernameSpan.appendChild(dot);
+        }
 
         const heart = document.createElement('span');
-        heart.innerHTML = '&#10084;'; // hjärta
+        heart.innerHTML = '♥';
         heart.className = 'heart';
         if (favoriteUserIds.has(user.id)) {
           heart.classList.add('favorited');
         }
         heart.onclick = (e) => {
-          e.stopPropagation(); // så att li onclick inte triggas
+          e.stopPropagation();
           toggleFavorite(user.id, heart);
         };
 
@@ -195,22 +232,24 @@
     async function main() {
       const { data: { user }, error } = await supabase.auth.getUser();
       if (error || !user) {
-        alert('Du måste logga in för att se sidan');
+        alert('Du måste vara inloggad för att se användare.');
         window.location.href = 'index.html';
         return;
       }
       currentUserId = user.id;
 
-      document.getElementById('welcome').textContent = `Välkommen tillbaka, ${user.email}`;
+      document.getElementById('welcome').textContent = `Välkommen, ${user.user_metadata?.firstname || user.email}!`;
 
       await loadFavorites();
-      const users = await fetchUsers();
-      renderUsers(users);
+      await loadUnreadMessages();
+
+      allUsers = await fetchUsers();
+      renderUsers(allUsers);
 
       document.getElementById('search').addEventListener('input', async (e) => {
-        const searchTerm = e.target.value;
-        const filteredUsers = await fetchUsers(searchTerm);
-        renderUsers(filteredUsers);
+        const term = e.target.value.trim();
+        allUsers = await fetchUsers(term);
+        renderUsers(allUsers);
       });
 
       document.getElementById('logout').onclick = async () => {
