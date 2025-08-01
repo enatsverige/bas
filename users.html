@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Användare</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      background-color: #003578;
+      color: #ffc200;
+      padding: 2rem;
+      text-align: center;
+    }
+    input {
+      padding: 0.5rem;
+      width: 80%;
+      max-width: 400px;
+      border-radius: 6px;
+      border: none;
+      margin-bottom: 1rem;
+    }
+    .user-list {
+      max-width: 500px;
+      margin: 0 auto;
+      text-align: left;
+    }
+    .user {
+      padding: 0.5rem;
+      background-color: #004a99;
+      margin: 0.3rem 0;
+      border-radius: 6px;
+    }
+    .user a {
+      color: #ffc200;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <h1>Alla användare</h1>
+  <input type="text" id="search" placeholder="Sök efter användarnamn..." />
+  <div class="user-list" id="user-list">Laddar...</div>
+
+  <script>
+    const supabase = window.supabase.createClient(
+      'https://jtbcqgjkvzgcjobfbtad.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0YmNxZ2prdnpnY2pvYmZidGFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1MzU0NTksImV4cCI6MjA2OTExMTQ1OX0.ogacm-3bmQI7WDgHZSI2r6jDOrDAGMfI7QtG0avYMTQ'
+    );
+
+    const userList = document.getElementById('user-list');
+    const searchInput = document.getElementById('search');
+
+    async function loadUsers() {
+      const { data, error } = await supabase.from('Profiles').select('id, username');
+      if (error) {
+        userList.innerHTML = 'Fel vid hämtning av användare.';
+        return;
+      }
+
+      renderUsers(data);
+
+      searchInput.addEventListener('input', () => {
+        const search = searchInput.value.toLowerCase();
+        const filtered = data.filter(u => u.username.toLowerCase().includes(search));
+        renderUsers(filtered);
+      });
+    }
+
+    function renderUsers(users) {
+      if (users.length === 0) {
+        userList.innerHTML = 'Inga användare hittades.';
+        return;
+      }
+
+      userList.innerHTML = users.map(u => `
+        <div class="user">
+          <a href="chat.html?user=${encodeURIComponent(u.username)}">${u.username}</a>
+        </div>
+      `).join('');
+    }
+
+    loadUsers();
+  </script>
+</body>
+</html>
