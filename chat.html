@@ -72,6 +72,14 @@
       margin: 0.5rem 0;
     }
 
+    .message.own {
+      color: #ffe680;
+    }
+
+    .message.other {
+      color: red;
+    }
+
     #chat-input {
       width: 300px;
       padding: 0.5rem;
@@ -251,30 +259,17 @@
         return;
       }
 
-      const { data: selectedUserData } = await supabase
-        .from("Profiles")
-        .select("username")
-        .eq("id", selectedUserId)
-        .single();
-
-      const otherUsername = selectedUserData?.username || "Okänd";
-
       const chatBox = document.getElementById("chat-box");
       chatBox.innerHTML = "";
 
       data.forEach(msg => {
         const date = new Date(msg.sent_at);
         const dateStr = date.toLocaleDateString("sv-SE") + " " + date.toLocaleTimeString("sv-SE");
-        const senderIsMe = msg.sender_id === currentUser.id;
-        const sender = senderIsMe ? "Du" : otherUsername;
 
         const div = document.createElement("div");
         div.className = "message";
-        div.textContent = `[${dateStr}] ${sender}: ${msg.content}`;
-        div.style.backgroundColor = senderIsMe ? "#ffe680" : "#0059b3";
-        div.style.padding = "0.4rem";
-        div.style.borderRadius = "6px";
-
+        div.classList.add(msg.sender_id === currentUser.id ? "own" : "other");
+        div.textContent = `[${dateStr}] ${msg.content}`;
         chatBox.appendChild(div);
       });
 
