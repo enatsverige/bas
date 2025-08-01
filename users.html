@@ -1,64 +1,51 @@
 <!DOCTYPE html>
 <html lang="sv">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Användare</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
     body {
-      font-family: sans-serif;
-      background-color: #002855;
+      background-color: #003578;
       color: #ffc200;
-      padding: 2rem;
+      font-family: sans-serif;
+      padding: 1rem;
       text-align: center;
     }
-
-    h1 {
-      margin-bottom: 1rem;
-    }
-
-    #search {
+    input[type="text"] {
       padding: 0.5rem;
-      width: 300px;
-      max-width: 80%;
-      margin-bottom: 1rem;
-      border-radius: 5px;
-      border: none;
-      font-size: 1rem;
-    }
-
-    .user {
-      background: #003e87;
-      margin: 0.5rem auto;
-      padding: 1rem;
-      width: 100%;
+      width: 80%;
       max-width: 400px;
-      border-radius: 8px;
+      margin-bottom: 1rem;
+    }
+    .user {
+      background: #004a99;
+      margin: 0.5rem auto;
+      padding: 0.5rem;
+      border-radius: 6px;
+      max-width: 400px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      color: #fff;
     }
-
     .user a {
       color: #ffc200;
       text-decoration: none;
-      font-size: 1.2rem;
+      font-weight: bold;
     }
-
     .heart {
       cursor: pointer;
-      font-size: 1.5rem;
+      font-size: 1.2rem;
+      margin-left: 1rem;
     }
-
-    .heart.favorited {
+    .favorited {
       color: red;
     }
   </style>
 </head>
 <body>
-  <h1>Alla användare</h1>
-  <input type="text" id="search" placeholder="Sök användarnamn...">
+  <h1>Användare</h1>
+  <input type="text" id="search" placeholder="Sök användarnamn..." />
   <div id="user-list"></div>
 
   <script>
@@ -67,93 +54,84 @@
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0YmNxZ2prdnpnY2pvYmZidGFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1MzU0NTksImV4cCI6MjA2OTExMTQ1OX0.ogacm-3bmQI7WDgHZSI2r6jDOrDAGMfI7QtG0avYMTQ'
     );
 
-    let currentUserId;
+    let currentUserId = null;
     let favorites = [];
 
-    async function loadCurrentUser() {
-      const { data: authData } = await supabase.auth.getUser();
-      currentUserId = authData.user.id;
-    }
-
-    async function loadFavorites() {
-      const { data, error } = await supabase
-        .from("Favorites")
-        .select("favorited_id")
-        .eq("user_id", currentUserId);
-
-      if (!error && data) {
-        favorites = data.map(f => f.favorited_id);
-      }
-    }
-
-    async function toggleFavorite(userId) {
-      const isFav = favorites.includes(userId);
-      if (isFav) {
-        await supabase
-          .from("Favorites")
-          .delete()
-          .match({ user_id: currentUserId, favorited_id: userId });
-        favorites = favorites.filter(id => id !== userId);
-      } else {
-        await supabase
-          .from("Favorites")
-          .insert([{ user_id: currentUserId, favorited_id: userId }]);
-        favorites.push(userId);
-      }
-      loadUsers();
-    }
-
     async function loadUsers() {
-      const searchTerm = document.getElementById("search").value.toLowerCase();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-      const { data: users, error } = await supabase
-        .from("Profiles")
-        .select("id, username")
-        .neq("id", currentUserId);
+      currentUserId = user.id;
 
-      if (error) {
-        console.error("Fel vid hämtning av användare:", error.message);
+      const { data: favs } = await supabase
+        .from('Favorites')
+        .select('favorited_id')
+        .eq('user_id', currentUserId);
+
+      favorites = favs.map(f => f.favorited_id);
+
+      const { data: users } = await supabase
+        .from('Profiles')
+        .select('id, username');
+
+      if (!users) {
+        alert("Fel vid hämtning av användare.");
         return;
       }
 
-      const userList = document.getElementById("user-list");
-      userList.innerHTML = "";
+      const searchInput = document.getElementById("search");
+      searchInput.addEventListener("input", () => showUsers(users));
 
-      const filtered = users.filter(u => u.username.toLowerCase().includes(searchTerm));
-      const sorted = filtered.sort((a, b) => {
-        const afav = favorites.includes(a.id);
-        const bfav = favorites.includes(b.id);
-        return (bfav - afav);
-      });
-
-      sorted.forEach(user => {
-        const userDiv = document.createElement("div");
-        userDiv.className = "user";
-
-        const link = document.createElement("a");
-        link.href = `chat.html?to=${user.id}`;
-        link.textContent = user.username;
-
-        const heart = document.createElement("span");
-        heart.className = "heart" + (favorites.includes(user.id) ? " favorited" : "");
-        heart.innerHTML = "❤️";
-        heart.onclick = () => toggleFavorite(user.id);
-
-        userDiv.appendChild(link);
-        userDiv.appendChild(heart);
-        userList.appendChild(userDiv);
-      });
+      showUsers(users);
     }
 
-    document.getElementById("search").addEventListener("input", loadUsers);
+    function showUsers(users) {
+      const search = document.getElementById("search").value.toLowerCase();
+      const container = document.getElementById("user-list");
+      container.innerHTML = "";
 
-    async function init() {
-      await loadCurrentUser();
-      await loadFavorites();
-      await loadUsers();
+      users
+        .filter(u => u.id !== currentUserId && u.username.toLowerCase().includes(search))
+        .sort((a, b) => {
+          const aFav = favorites.includes(a.id);
+          const bFav = favorites.includes(b.id);
+          return bFav - aFav;
+        })
+        .forEach(user => {
+          const div = document.createElement("div");
+          div.className = "user";
+
+          const link = document.createElement("a");
+          link.href = `chat.html?user=${user.id}`;
+          link.textContent = user.username;
+
+          const heart = document.createElement("span");
+          heart.innerHTML = "❤️";
+          heart.className = "heart";
+          if (favorites.includes(user.id)) heart.classList.add("favorited");
+
+          heart.onclick = async () => {
+            if (favorites.includes(user.id)) {
+              await supabase.from('Favorites')
+                .delete()
+                .eq('user_id', currentUserId)
+                .eq('favorited_id', user.id);
+              favorites = favorites.filter(f => f !== user.id);
+            } else {
+              await supabase.from('Favorites')
+                .insert({ user_id: currentUserId, favorited_id: user.id });
+              favorites.push(user.id);
+            }
+            showUsers(users);
+          };
+
+          div.appendChild(link);
+          div.appendChild(heart);
+          container.appendChild(div);
+        });
     }
 
-    init();
+    loadUsers();
   </script>
 </body>
 </html>
