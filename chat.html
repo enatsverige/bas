@@ -7,59 +7,101 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
     body {
-      background: #003578;
+      background-color: #003578;
       color: #ffc200;
       font-family: sans-serif;
-      padding: 1rem;
+      padding: 2rem;
+    }
+
+    h2 {
       text-align: center;
     }
-    #chat-box {
-      width: 90%;
-      height: 400px;
-      overflow-y: scroll;
+
+    #user-list {
+      max-height: 300px;
+      overflow-y: auto;
       background: #004a99;
-      border-radius: 10px;
       padding: 1rem;
-      margin: 1rem auto;
-      max-width: 600px;
-      text-align: left;
+      border-radius: 8px;
+      margin-bottom: 1rem;
     }
+
+    .user-item {
+      cursor: pointer;
+      padding: 0.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #336bb8;
+    }
+
+    .user-item:hover {
+      background-color: #0059b3;
+    }
+
+    .heart {
+      font-size: 18px;
+      cursor: pointer;
+      color: gray;
+    }
+
+    .heart.favorited {
+      color: red;
+    }
+
+    #search {
+      width: 200px;
+      padding: 0.4rem;
+      margin-bottom: 1rem;
+      border-radius: 6px;
+      border: none;
+    }
+
+    #chat-box {
+      border: 2px solid #ffc200;
+      padding: 1rem;
+      border-radius: 8px;
+      max-height: 300px;
+      overflow-y: auto;
+      background: #002a5e;
+      margin-bottom: 1rem;
+    }
+
     .message {
       margin: 0.5rem 0;
     }
-    .message.you {
-      font-weight: bold;
-      color: #ffc200;
-    }
-    .timestamp {
-      font-size: 0.8rem;
-      color: #ccc;
-    }
-    input {
-      width: 70%;
+
+    #chat-input {
+      width: 300px;
       padding: 0.5rem;
-      margin-top: 1rem;
-      border-radius: 8px;
+      border-radius: 6px;
       border: none;
     }
-    button {
+
+    #send-btn {
       padding: 0.5rem 1rem;
       background: #336bb8;
-      color: white;
       border: none;
-      border-radius: 8px;
+      border-radius: 6px;
+      color: white;
+      margin-left: 5px;
       cursor: pointer;
     }
-    button:hover {
+
+    #send-btn:hover {
       background: #417fd1;
     }
   </style>
 </head>
 <body>
-  <h1>Chatt med <span id="chat-username"></span></h1>
+  <h2>Chatt</h2>
+  <input type="text" id="search" placeholder="Sök användarnamn..."/>
+  <div id="user-list"></div>
   <div id="chat-box"></div>
-  <input type="text" id="message-input" placeholder="Skriv ett meddelande..." />
-  <button onclick="sendMessage()">Skicka</button>
+  <div>
+    <input type="text" id="chat-input" placeholder="Skriv ett meddelande..." />
+    <button id="send-btn">Skicka</button>
+  </div>
 
   <script>
     const supabase = window.supabase.createClient(
@@ -67,70 +109,123 @@
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0YmNxZ2prdnpnY2pvYmZidGFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1MzU0NTksImV4cCI6MjA2OTExMTQ1OX0.ogacm-3bmQI7WDgHZSI2r6jDOrDAGMfI7QtG0avYMTQ'
     );
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const otherUserId = urlParams.get('uid');
-    const otherUsername = urlParams.get('uname');
-    document.getElementById('chat-username').textContent = otherUsername;
+    let currentUser = null;
+    let selectedUserId = null;
 
-    let currentUserId = null;
+    async function loadUsers() {
+      const { data: authData } = await supabase.auth.getUser();
+      currentUser = authData.user;
+
+      const { data: profiles, error } = await supabase.from("Profiles").select("id, username");
+
+      if (error) {
+        console.error("Fel vid hämtning av användare:", error.message);
+        return;
+      }
+
+      renderUserList(profiles);
+    }
+
+    function renderUserList(users) {
+      const list = document.getElementById("user-list");
+      list.innerHTML = "";
+
+      users.forEach(user => {
+        if (user.id === currentUser.id) return;
+
+        const item = document.createElement("div");
+        item.className = "user-item";
+        item.innerHTML = `
+          <span>${user.username}</span>
+          <span class="heart" data-id="${user.id}">♥</span>
+        `;
+
+        item.addEventListener("click", () => {
+          selectedUserId = user.id;
+          loadMessages();
+        });
+
+        item.querySelector(".heart").addEventListener("click", async (e) => {
+          e.stopPropagation();
+          const heart = e.target;
+          const isFav = heart.classList.toggle("favorited");
+
+          if (isFav) {
+            await supabase.from("Favorites").insert({ user_id: currentUser.id, favorite_id: user.id });
+          } else {
+            await supabase.from("Favorites").delete().match({ user_id: currentUser.id, favorite_id: user.id });
+          }
+        });
+
+        list.appendChild(item);
+      });
+    }
 
     async function loadMessages() {
-      const { data: auth } = await supabase.auth.getUser();
-      currentUserId = auth.user.id;
+      if (!selectedUserId) return;
 
       const { data, error } = await supabase
-        .from('Messages')
-        .select('*')
-        .or(`sender_id.eq.${currentUserId},receiver_id.eq.${currentUserId}`)
-        .order('timestamp', { ascending: true });
+        .from("Messages")
+        .select("*")
+        .or(`and(sender_id.eq.${currentUser.id},receiver_id.eq.${selectedUserId}),and(sender_id.eq.${selectedUserId},receiver_id.eq.${currentUser.id})`)
+        .order("sent_at", { ascending: true });
 
       if (error) {
         console.error("Fel vid hämtning av meddelanden:", error.message);
         return;
       }
 
-      const messages = data.filter(
-        m => (m.sender_id === currentUserId && m.receiver_id === otherUserId) ||
-             (m.sender_id === otherUserId && m.receiver_id === currentUserId)
-      );
+      const chatBox = document.getElementById("chat-box");
+      chatBox.innerHTML = "";
 
-      const box = document.getElementById('chat-box');
-      box.innerHTML = '';
-      messages.forEach(msg => {
-        const div = document.createElement('div');
-        div.className = 'message ' + (msg.sender_id === currentUserId ? 'you' : 'them');
-        div.innerHTML = `
-          ${msg.message}
-          <div class="timestamp">${new Date(msg.timestamp).toLocaleString()}</div>
-        `;
-        box.appendChild(div);
+      data.forEach(msg => {
+        const div = document.createElement("div");
+        div.className = "message";
+        div.textContent = `[${new Date(msg.sent_at).toLocaleTimeString()}] ${msg.content}`;
+        chatBox.appendChild(div);
       });
 
-      box.scrollTop = box.scrollHeight;
+      chatBox.scrollTop = chatBox.scrollHeight;
     }
 
     async function sendMessage() {
-      const text = document.getElementById('message-input').value;
-      if (!text.trim()) return;
+      const input = document.getElementById("chat-input");
+      const content = input.value.trim();
+      if (!content || !selectedUserId) return;
 
-      await supabase.from('Messages').insert({
-        sender_id: currentUserId,
-        receiver_id: otherUserId,
-        message: text
+      const { error } = await supabase.from("Messages").insert({
+        sender_id: currentUser.id,
+        receiver_id: selectedUserId,
+        content,
+        sent_at: new Date().toISOString(),
+        read: false
       });
 
-      document.getElementById('message-input').value = '';
+      if (error) {
+        console.error("Fel vid sändning av meddelande:", error.message);
+        return;
+      }
+
+      input.value = "";
       loadMessages();
     }
 
-    document.getElementById('message-input').addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') {
-        sendMessage();
-      }
+    document.getElementById("send-btn").addEventListener("click", sendMessage);
+    document.getElementById("chat-input").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") sendMessage();
     });
 
-    loadMessages();
-    setInterval(loadMessages, 3000);
+    document.getElementById("search").addEventListener("input", async (e) => {
+      const query = e.target.value.toLowerCase();
+      const { data: profiles } = await supabase.from("Profiles").select("id, username");
+      const filtered = profiles.filter(user =>
+        user.id !== currentUser.id &&
+        user.username.toLowerCase().includes(query)
+      );
+      renderUserList(filtered);
+    });
+
+    loadUsers();
   </script>
 </body>
 </html>
