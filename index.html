@@ -176,59 +176,11 @@
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 <script>
-  // Initiera klienten korrekt
-  const supabase = supabase.createClient(
-    'https://jtbcqgjkvzgcjobfbtad.supabase.co',
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0YmNxZ2prdnpnY2pvYmZidGFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1MzU0NTksImV4cCI6MjA2OTExMTQ1OX0.ogacm-3bmQI7WDgHZSI2r6jDOrDAGMfI7QtG0avYMTQ'
-  );
+<form id="user-count" style="margin-bottom: 1rem; font-weight: bold; color: #ffc200;">
+  Aktiva användare: <span id="active-users">Läser in...</span>
+</form>
 
-  async function updateUserCount() {
-    const { count, error } = await supabase
-      .from('Profiles')
-      .select('*', { count: 'exact', head: true });
-    const countDiv = document.getElementById('user-count');
-    if (error) {
-      countDiv.textContent = "Kunde inte hämta användardata.";
-      console.error("Fel:", error.message);
-    } else {
-      countDiv.textContent = `Aktiva användare: ${count}`;
-    }
-  }
-
-  updateUserCount();
-</script>
-<!-- Placera den här div:en där du vill visa antalet användare -->
-<div id="activeUsersCount" style="font-weight:bold; margin: 10px 0;">
-  Laddar antal användare...
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-  // Byt ut med din Supabase info:
-  const supabaseUrl = 'https://jtbcqgjkvzgcjobfbtad.supabase.co';
-  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0YmNxZ2prdnpnY2pvYmZidGFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1MzU0NTksImV4cCI6MjA2OTExMTQ1OX0.ogacm-3bmQI7WDgHZSI2r6jDOrDAGMfI7QtG0avYMTQ';
-  const supabase = supabase.createClient(supabaseUrl, supabaseKey);
-
-  async function updateActiveUsersCount() {
-    const { count, error } = await supabase
-      .from('users')
-      .select('*', { count: 'exact', head: true }); // Hämtar bara räkning, ingen data
-
-    if (error) {
-      console.error('Fel vid hämtning av användarantal:', error);
-      document.getElementById('activeUsersCount').textContent = 'Kunde inte hämta användarantal';
-      return;
-    }
-
-    document.getElementById('activeUsersCount').textContent = `Aktiva användare: ${count}`;
-  }
-
-  updateActiveUsersCount();
-  // Uppdatera varje 60 sekunder, om du vill:
-  setInterval(updateActiveUsersCount, 60000);
-</script>
-
-  <form id="register-form">
+<form id="register-form">
     <h2>Registrera</h2>
     <label>Email</label>
     <input type="email" id="reg-email" required />
@@ -276,6 +228,20 @@
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0YmNxZ2prdnpnY2pvYmZidGFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1MzU0NTksImV4cCI6MjA2OTExMTQ1OX0.ogacm-3bmQI7WDgHZSI2r6jDOrDAGMfI7QtG0avYMTQ'
     );
 
+    async function updateActiveUsers() {
+      const { count, error } = await supabase
+        .from('Profiles')
+        .select('*', { count: 'exact', head: true });
+      if (error) {
+        document.getElementById('active-users').textContent = 'Kunde inte hämta antalet användare';
+        return;
+      }
+      document.getElementById('active-users').textContent = count;
+    }
+
+    // Kör vid sidladdning
+    updateActiveUsers();
+
     const registerForm = document.getElementById('register-form');
     const loginForm = document.getElementById('login-form');
     const updateForm = document.getElementById('update-form');
@@ -313,6 +279,9 @@
         alert('Kunde inte spara profil: ' + insertError.message);
         return;
       }
+
+      // Uppdatera live-räknaren efter registrering
+      updateActiveUsers();
 
       registerForm.style.display = 'none';
       loginForm.style.display = 'none';
@@ -410,6 +379,7 @@
   </script>
 </body>
 </html>
+
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <div style="margin-top: 3rem; text-align: center;">
   <a href="https://t.me/+U9VxCQMwfL8yM2Zk" target="_blank" style="color: #ffc200; text-decoration: none; font-size: 1.2rem;">
@@ -443,11 +413,7 @@
 <script>
   function togglePolicy() {
     const section = document.getElementById('policy-section');
-    if (section.style.display === 'none') {
-      section.style.display = 'block';
-    } else {
-      section.style.display = 'none';
-    }
+    section.style.display = section.style.display === 'none' ? 'block' : 'none';
   }
 </script>
 <!-- Kontaktinformation Sektion -->
@@ -471,3 +437,4 @@
     contact.style.display = contact.style.display === 'none' ? 'block' : 'none';
   }
 </script>
+  
