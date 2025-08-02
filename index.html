@@ -197,6 +197,36 @@
 
   updateUserCount();
 </script>
+<!-- Placera den här div:en där du vill visa antalet användare -->
+<div id="activeUsersCount" style="font-weight:bold; margin: 10px 0;">
+  Laddar antal användare...
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  // Byt ut med din Supabase info:
+  const supabaseUrl = 'DIN_SUPABASE_URL';
+  const supabaseKey = 'DIN_SUPABASE_ANON_KEY';
+  const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+  async function updateActiveUsersCount() {
+    const { count, error } = await supabase
+      .from('users')
+      .select('*', { count: 'exact', head: true }); // Hämtar bara räkning, ingen data
+
+    if (error) {
+      console.error('Fel vid hämtning av användarantal:', error);
+      document.getElementById('activeUsersCount').textContent = 'Kunde inte hämta användarantal';
+      return;
+    }
+
+    document.getElementById('activeUsersCount').textContent = `Aktiva användare: ${count}`;
+  }
+
+  updateActiveUsersCount();
+  // Uppdatera varje 60 sekunder, om du vill:
+  setInterval(updateActiveUsersCount, 60000);
+</script>
 
   <form id="register-form">
     <h2>Registrera</h2>
