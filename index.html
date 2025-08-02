@@ -174,34 +174,6 @@
     }
   }
 </script>
-<!-- Live-antal användare -->
-<div id="user-count" style="text-align: center; margin: 20px 0; font-size: 1.2rem; color: #ffc200;">
-  Aktiva användare: laddar...
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-<script>
-  const supabase = window.supabase.createClient(
-    'https://jtbcqgjkvzgcjobfbtad.supabase.co',
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0YmNxZ2prdnpnY2pvYmZidGFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1MzU0NTksImV4cCI6MjA2OTExMTQ1OX0.ogacm-3bmQI7WDgHZSI2r6jDOrDAGMfI7QtG0avYMTQ'
-  );
-
-  async function updateUserCount() {
-    const { count, error } = await supabase
-      .from('Profiles')
-      .select('*', { count: 'exact', head: true });
-
-    const countDiv = document.getElementById('user-count');
-    if (error) {
-      countDiv.textContent = "Kunde inte hämta användardata.";
-      console.error("Fel:", error.message);
-    } else {
-      countDiv.textContent = `Aktiva användare: ${count}`;
-    }
-  }
-
-  updateUserCount();
-</script>
 
   <form id="register-form">
     <h2>Registrera</h2>
