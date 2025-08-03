@@ -1,1 +1,244 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Nyheter / Viktig info</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .news-post, .comment {
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 8px;
+      background-color: #f9f9f9;
+    }
+    .comment-controls, .post-controls {
+      margin-top: 5px;
+    }
+    .search-box {
+      margin: 20px 0;
+    }
+    .btn {
+      padding: 4px 8px;
+      margin-right: 5px;
+      cursor: pointer;
+    }
+    .comment-list { margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <h1>Nyheter & Viktig info</h1>
+
+    <!-- Sökfält -->
+    <input type="text" id="search" class="search-box" placeholder="Sök nyheter..." />
+
+    <!-- Adminformulär -->
+    <div id="admin-post-form" style="display: none;">
+      <h3>Lägg upp nyhet</h3>
+      <input type="text" id="post-title" placeholder="Titel" /><br><br>
+      <textarea id="post-content" placeholder="Vad vill du meddela?"></textarea><br><br>
+      <input type="file" id="post-media" accept="image/*,video/*" /><br><br>
+      <button id="submit-post">Lägg upp</button>
+      <hr>
+    </div>
+
+    <!-- Lista med nyheter -->
+    <div id="news-list"></div>
+  </div>
+
+  <script>
+    const currentUser = {
+      email: "ninjafjnaten1@gmail.com",
+      username: "Ninjafjnaten",
+      firstName: "Viktor"
+    };
+
+    const isAdmin = currentUser.email === "ninjafjnaten1@gmail.com";
+    const newsList = document.getElementById("news-list");
+    const searchInput = document.getElementById("search");
+
+    if (isAdmin) {
+      document.getElementById("admin-post-form").style.display = "block";
+    }
+
+    function savePosts(posts) {
+      localStorage.setItem("news-posts", JSON.stringify(posts));
+    }
+
+    function loadPosts() {
+      return JSON.parse(localStorage.getItem("news-posts")) || [];
+    }
+
+    function renderPosts(posts) {
+      newsList.innerHTML = "";
+      const filtered = posts
+        .filter(post => post.title.toLowerCase().includes(searchInput.value.toLowerCase()) || post.content.toLowerCase().includes(searchInput.value.toLowerCase()))
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
+      
+      filtered.forEach((post, index) => {
+        const div = document.createElement("div");
+        div.className = "news-post";
+
+        let mediaHTML = "";
+        if (post.media && post.media.startsWith("data:")) {
+          if (post.media.includes("image")) {
+            mediaHTML = `<img src="${post.media}" alt="bild" style="max-width:100%"/>`;
+          } else if (post.media.includes("video")) {
+            mediaHTML = `<video controls style="max-width:100%"><source src="${post.media}" /></video>`;
+          }
+        }
+
+        div.innerHTML = `
+          <h3>${post.title}</h3>
+          <p>${post.content}</p>
+          ${mediaHTML}
+          <small>Upplagd av ${post.author} - ${new Date(post.date).toLocaleString()}</small>
+          <div class="post-controls">
+            <button class="btn" onclick="likePost(${index})">👍 ${post.likes || 0}</button>
+            <button class="btn" onclick="dislikePost(${index})">👎 ${post.dislikes || 0}</button>
+          </div>
+          <div class="comment-list" id="comments-${index}"></div>
+          <input type="text" placeholder="Kommentera..." onkeydown="handleCommentKey(event, ${index})"/>
+        `;
+        newsList.appendChild(div);
+        renderComments(post, index);
+      });
+    }
+
+    function renderComments(post, postIndex) {
+      const commentDiv = document.getElementById(`comments-${postIndex}`);
+      commentDiv.innerHTML = "";
+
+      if (!post.comments) post.comments = [];
+
+      let sortedComments = [...post.comments].sort((a, b) => (b.likes || 0) - (a.likes || 0));
+      const top3 = sortedComments.slice(0, 3);
+      const rest = sortedComments.slice(3);
+
+      const renderComment = (c, idx) => {
+        const el = document.createElement("div");
+        el.className = "comment";
+        el.innerHTML = `
+          <b>${c.author}</b>: ${c.text}
+          <div class="comment-controls">
+            <button class="btn" onclick="likeComment(${postIndex}, ${idx})">👍 ${c.likes || 0}</button>
+            <button class="btn" onclick="dislikeComment(${postIndex}, ${idx})">👎 ${c.dislikes || 0}</button>
+          </div>
+        `;
+        commentDiv.appendChild(el);
+      };
+
+      top3.forEach(renderComment);
+
+      if (rest.length > 0) {
+        const moreBtn = document.createElement("button");
+        moreBtn.textContent = "Visa fler";
+        moreBtn.className = "btn";
+        let expanded = false;
+
+        moreBtn.onclick = () => {
+          if (!expanded) {
+            rest.forEach(renderComment);
+            moreBtn.textContent = "Visa färre";
+          } else {
+            renderPosts(loadPosts()); // re-render
+          }
+          expanded = !expanded;
+        };
+
+        commentDiv.appendChild(moreBtn);
+      }
+    }
+
+    function handleCommentKey(e, postIndex) {
+      if (e.key === "Enter" && e.target.value.trim()) {
+        const posts = loadPosts();
+        const comment = {
+          author: currentUser.username,
+          text: e.target.value.trim(),
+          likes: 0,
+          dislikes: 0
+        };
+        if (!posts[postIndex].comments) posts[postIndex].comments = [];
+        posts[postIndex].comments.push(comment);
+        savePosts(posts);
+        renderPosts(posts);
+      }
+    }
+
+    function likePost(index) {
+      const posts = loadPosts();
+      posts[index].likes = (posts[index].likes || 0) + 1;
+      savePosts(posts);
+      renderPosts(posts);
+    }
+
+    function dislikePost(index) {
+      const posts = loadPosts();
+      posts[index].dislikes = (posts[index].dislikes || 0) + 1;
+      savePosts(posts);
+      renderPosts(posts);
+    }
+
+    function likeComment(postIndex, commentIndex) {
+      const posts = loadPosts();
+      posts[postIndex].comments[commentIndex].likes = (posts[postIndex].comments[commentIndex].likes || 0) + 1;
+      savePosts(posts);
+      renderPosts(posts);
+    }
+
+    function dislikeComment(postIndex, commentIndex) {
+      const posts = loadPosts();
+      posts[postIndex].comments[commentIndex].dislikes = (posts[postIndex].comments[commentIndex].dislikes || 0) + 1;
+      savePosts(posts);
+      renderPosts(posts);
+    }
+
+    // Lägga upp nyhet
+    document.getElementById("submit-post").onclick = () => {
+      const title = document.getElementById("post-title").value;
+      const content = document.getElementById("post-content").value;
+      const fileInput = document.getElementById("post-media");
+      const file = fileInput.files[0];
+
+      const reader = new FileReader();
+      reader.onload = function () {
+        const media = reader.result;
+        const newPost = {
+          title,
+          content,
+          media,
+          author: currentUser.username,
+          date: new Date(),
+          likes: 0,
+          dislikes: 0,
+          comments: []
+        };
+        const posts = loadPosts();
+        posts.push(newPost);
+        savePosts(posts);
+        renderPosts(posts);
+        document.getElementById("post-title").value = "";
+        document.getElementById("post-content").value = "";
+        fileInput.value = "";
+      };
+
+      if (file) {
+        reader.readAsDataURL(file);
+      } else {
+        reader.onload();
+      }
+    };
+
+    searchInput.oninput = () => {
+      renderPosts(loadPosts());
+    };
+
+    // Initiera
+    renderPosts(loadPosts());
+  </script>
+</body>
+</html>
 
