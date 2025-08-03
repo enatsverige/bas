@@ -42,6 +42,10 @@
     .comment-section {
       margin-top: 10px;
     }
+    .comment-form {
+      display: flex;
+      gap: 10px;
+    }
   </style>
 </head>
 <body>
@@ -61,6 +65,256 @@
   <input type="text" id="search" placeholder="Sök inlägg...">
   <div id="posts"></div>
   <button id="toggle-posts" onclick="togglePosts()">Visa alla</button>
-  <script src="news.js"></script>
+
+  <script>
+    console.log("JavaScript loaded in news.html");
+
+    const supabase = Supabase.createClient('https://jtbcqgjkvzgcjobfbtad.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0YmNxZ2prdnpnY2pvYmZidGFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1MzU0NTksImV4cCI6MjA2OTExMTQ1OX0.ogacm-3bmQI7WDgHZSI2r6jDOrDAGMfI7QtG0avYMTQ');
+    console.log("Supabase client initialized");
+
+    const SECRET_CODE = 'HHGffajkskksm13324..1!?';
+    let showAllPosts = false;
+    let currentUser = null;
+    const commentsDisplayLimit = 3;
+
+    async function checkAuth() {
+      console.log("Checking authentication...");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.log("No user found, redirecting to index.html");
+        window.location.href = 'index.html';
+      } else {
+        currentUser = user;
+        console.log("User authenticated:", user);
+        loadPosts();
+      }
+    }
+
+    async function checkCode() {
+      console.log("Checking secret code...");
+      const code = document.getElementById('secret-code').value;
+      if (code === SECRET_CODE) {
+        console.log("Correct code, showing post form");
+        document.getElementById('post-form-container').style.display = 'block';
+      } else {
+        console.log("Incorrect code");
+        alert('Fel kod!');
+      }
+    }
+
+    async function createPost() {
+      console.log("Creating new post...");
+      const title = document.getElementById('post-title').value;
+      const content = document.getElementById('post-content').value;
+      const mediaUrl = document.getElementById('post-media').value;
+      if (!title || !content) {
+        console.log("Title or content missing");
+        alert('Titel och innehåll krävs!');
+        return;
+      }
+      const { error } = await supabase.from('posts').insert({
+        title,
+        content,
+        media_url: mediaUrl,
+        user_id: currentUser.id,
+      });
+      if (error) {
+        console.error('Error creating post:', error);
+      } else {
+        console.log("Post created successfully");
+        loadPosts();
+        document.getElementById('post-title').value = '';
+        document.getElementById('post-content').value = '';
+        document.getElementById('post-media').value = '';
+      }
+    }
+
+    async function loadPosts() {
+      console.log("Loading posts...");
+      const { data: posts, error } = await supabase
+        .from('posts')
+        .select(`
+          id, title, content, media_url, created_at, user_id,
+          Profiles (username),
+          post_likes (user_id, is_liked),
+          comments (id, content, created_at, user_id, Profiles (username), comment_likes (user_id, is_liked))
+        `)
+        .order('created_at', { ascending: false })
+        .limit(showAllPosts ? 1000 : 5);
+      if (error) {
+        console.error('Error loading posts:', error);
+        return;
+      }
+      console.log("Posts loaded:", posts);
+      const postsDiv = document.getElementById('posts');
+      postsDiv.innerHTML = '';
+      for (const post of posts) {
+        const likes = post.post_likes.filter(l => l.is_liked).length;
+        const dislikes = post.post_likes.filter(l => !l.is_liked).length;
+        const comments = post.comments
+          .sort((a, b) => {
+            const aLikes = a.comment_likes.filter(l => l.is_liked).length;
+            const bLikes = b.comment_likes.filter(l => l.is_liked).length;
+            return bLikes - aLikes;
+          });
+        const displayedComments = showAllPosts ? comments : comments.slice(0, commentsDisplayLimit);
+        const postDiv = document.createElement('div');
+        postDiv.className = 'post';
+        postDiv.innerHTML = `
+          <h3>${post.title}</h3>
+          <p>${post.content}</p>
+          ${post.media_url ? `<img src="${post.media_url}" alt="Media" style="max-width: 100%;">` : ''}
+          <p>Uppladdat: ${new Date(post.created_at).toLocaleString()}</p>
+          <p>Av: ${post.Profiles.username}</p>
+          <p>Gilla: ${likes} | Ogilla: ${dislikes}</p>
+          <button onclick="likePost('${post.id}', true)">Gilla</button>
+          <button onclick="likePost('${post.id}', false)">Ogilla</button>
+          <h4>Kommentarer:</h4>
+          <div id="comments-${post.id}" class="comment-section">
+            ${displayedComments.map(c => `
+              <div class="comment">
+                <p>${c.content}</p>
+                <p>Av: ${c.Profiles.username} (${new Date(c.created_at).toLocaleString()})</p>
+                <p>Gilla: ${c.comment_likes.filter(l => l.is_liked).length} | Ogilla: ${c.comment_likes.filter(l => !l.is_liked).length}</p>
+                <button onclick="likeComment('${c.id}', true)">Gilla</button>
+                <button onclick="likeComment('${c.id}', false)">Ogilla</button>
+              </div>
+            `).join('')}
+          </div>
+          ${comments.length > commentsDisplayLimit ? `<button onclick="toggleComments('${post.id}', ${comments.length})">Visa ${showAllPosts ? 'färre' : 'fler'}</button>` : ''}
+          <div class="comment-form">
+            <input type="text" id="comment-${post.id}" placeholder="Skriv en kommentar">
+            <button onclick="addComment('${post.id}')">Kommentera</button>
+          </div>
+        `;
+        postsDiv.appendChild(postDiv);
+      }
+      document.getElementById('toggle-posts').textContent = showAllPosts ? 'Visa färre' : 'Visa alla';
+    }
+
+    async function likePost(postId, isLiked) {
+      console.log(`Liking post ${postId}, isLiked: ${isLiked}`);
+      const { error } = await supabase
+        .from('post_likes')
+        .upsert({ post_id: postId, user_id: currentUser.id, is_liked: isLiked });
+      if (error) {
+        console.error('Error liking post:', error);
+      } else {
+        console.log("Post like updated");
+        loadPosts();
+      }
+    }
+
+    async function addComment(postId) {
+      console.log(`Adding comment to post ${postId}`);
+      const content = document.getElementById(`comment-${postId}`).value;
+      if (!content) {
+        console.log("Comment content missing");
+        alert('Skriv en kommentar!');
+        return;
+      }
+      const { error } = await supabase
+        .from('comments')
+        .insert({ post_id: postId, user_id: currentUser.id, content });
+      if (error) {
+        console.error('Error adding comment:', error);
+      } else {
+        console.log("Comment added successfully");
+        document.getElementById(`comment-${postId}`).value = '';
+        loadPosts();
+      }
+    }
+
+    async function likeComment(commentId, isLiked) {
+      console.log(`Liking comment ${commentId}, isLiked: ${isLiked}`);
+      const { error } = await supabase
+        .from('comment_likes')
+        .upsert({ comment_id: commentId, user_id: currentUser.id, is_liked: isLiked });
+      if (error) {
+        console.error('Error liking comment:', error);
+      } else {
+        console.log("Comment like updated");
+        loadPosts();
+      }
+    }
+
+    async function togglePosts() {
+      console.log("Toggling posts display...");
+      showAllPosts = !showAllPosts;
+      loadPosts();
+    }
+
+    async function toggleComments(postId, commentCount) {
+      console.log(`Toggling comments for post ${postId}`);
+      showAllPosts = !showAllPosts;
+      loadPosts();
+    }
+
+    document.getElementById('search').addEventListener('input', async (e) => {
+      console.log("Searching posts...");
+      const query = e.target.value.toLowerCase();
+      const { data: posts, error } = await supabase
+        .from('posts')
+        .select(`
+          id, title, content, media_url, created_at, user_id,
+          Profiles (username),
+          post_likes (user_id, is_liked),
+          comments (id, content, created_at, user_id, Profiles (username), comment_likes (user_id, is_liked))
+        `)
+        .ilike('title', `%${query}%`)
+        .or(`content.ilike.%${query}%`)
+        .order('created_at', { ascending: false });
+      if (error) {
+        console.error('Error searching posts:', error);
+        return;
+      }
+      console.log("Search results:", posts);
+      const postsDiv = document.getElementById('posts');
+      postsDiv.innerHTML = '';
+      for (const post of posts) {
+        const likes = post.post_likes.filter(l => l.is_liked).length;
+        const dislikes = post.post_likes.filter(l => !l.is_liked).length;
+        const comments = post.comments
+          .sort((a, b) => {
+            const aLikes = a.comment_likes.filter(l => l.is_liked).length;
+            const bLikes = b.comment_likes.filter(l => l.is_liked).length;
+            return bLikes - aLikes;
+          });
+        const displayedComments = showAllPosts ? comments : comments.slice(0, commentsDisplayLimit);
+        const postDiv = document.createElement('div');
+        postDiv.className = 'post';
+        postDiv.innerHTML = `
+          <h3>${post.title}</h3>
+          <p>${post.content}</p>
+          ${post.media_url ? `<img src="${post.media_url}" alt="Media" style="max-width: 100%;">` : ''}
+          <p>Uppladdat: ${new Date(post.created_at).toLocaleString()}</p>
+          <p>Av: ${post.Profiles.username}</p>
+          <p>Gilla: ${likes} | Ogilla: ${dislikes}</p>
+          <button onclick="likePost('${post.id}', true)">Gilla</button>
+          <button onclick="likePost('${post.id}', false)">Ogilla</button>
+          <h4>Kommentarer:</h4>
+          <div id="comments-${post.id}" class="comment-section">
+            ${displayedComments.map(c => `
+              <div class="comment">
+                <p>${c.content}</p>
+                <p>Av: ${c.Profiles.username} (${new Date(c.created_at).toLocaleString()})</p>
+                <p>Gilla: ${c.comment_likes.filter(l => l.is_liked).length} | Ogilla: ${c.comment_likes.filter(l => !l.is_liked).length}</p>
+                <button onclick="likeComment('${c.id}', true)">Gilla</button>
+                <button onclick="likeComment('${c.id}', false)">Ogilla</button>
+              </div>
+            `).join('')}
+          </div>
+          ${comments.length > commentsDisplayLimit ? `<button onclick="toggleComments('${post.id}', ${comments.length})">Visa ${showAllPosts ? 'färre' : 'fler'}</button>` : ''}
+          <div class="comment-form">
+            <input type="text" id="comment-${post.id}" placeholder="Skriv en kommentar">
+            <button onclick="addComment('${post.id}')">Kommentera</button>
+          </div>
+        `;
+        postsDiv.appendChild(postDiv);
+      }
+    });
+
+    checkAuth();
+  </script>
 </body>
 </html>
