@@ -1,186 +1,61 @@
 <!DOCTYPE html>
 <html lang="sv">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Nyheter & Viktig Info</title>
-  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nyheter</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     body {
       background-color: #003578;
       color: #ffc200;
       font-family: Arial, sans-serif;
       margin: 0;
-      padding: 1rem;
+      padding: 20px;
     }
-    input, textarea, button {
-      display: block;
-      margin: 0.5rem 0;
-      padding: 0.5rem;
-      width: 100%;
-      font-size: 1rem;
+    .post-form, .post, .comment {
+      background-color: rgba(255, 255, 255, 0.1);
+      padding: 15px;
+      margin-bottom: 10px;
+      border-radius: 5px;
     }
-    .post {
-      background-color: #002b60;
-      padding: 1rem;
-      border-radius: 10px;
-      margin-bottom: 1rem;
-    }
-    .comment {
-      background-color: #001f4d;
-      margin-top: 0.5rem;
-      padding: 0.5rem;
-      border-radius: 8px;
-    }
-    .comment-button {
-      background: none;
-      color: #ffc200;
+    button {
+      background-color: #ffc200;
+      color: #003578;
+      border: none;
+      padding: 10px;
       cursor: pointer;
-      margin-right: 0.5rem;
+    }
+    input, textarea {
+      background-color: #fff;
+      color: #000;
+      border: none;
+      padding: 5px;
+      margin: 5px 0;
+      width: 100%;
+    }
+    #post-form-container {
+      display: none;
     }
   </style>
 </head>
 <body>
-  <h1>Nyheter & Viktig Info</h1>
-
-  <div id="postForm">
-    <input id="secretCode" type="text" placeholder="Kod för att posta" />
-    <input id="title" type="text" placeholder="Titel" />
-    <textarea id="content" placeholder="Skriv nyhet här..." rows="4"></textarea>
-    <button onclick="createPost()">Posta</button>
+  <h1>Nyheter</h1>
+  <button onclick="window.location.href='index.html'">Tillbaka till startsidan</button>
+  <div>
+    <input type="text" id="secret-code" placeholder="Ange hemlig kod för att posta">
+    <button onclick="checkCode()">Verifiera kod</button>
   </div>
-
-  <h2>Inlägg</h2>
+  <div id="post-form-container">
+    <h2>Skapa nytt inlägg</h2>
+    <input type="text" id="post-title" placeholder="Titel">
+    <textarea id="post-content" placeholder="Innehåll"></textarea>
+    <input type="text" id="post-media" placeholder="Media-URL (valfritt)">
+    <button onclick="createPost()">Publicera</button>
+  </div>
+  <input type="text" id="search" placeholder="Sök inlägg...">
   <div id="posts"></div>
-  <button id="toggleBtn" onclick="toggleView()">Visa alla</button>
-
-  <script>
-    const SUPABASE_URL = "https://jtbcqgjkvzgcjobfbtad.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."; // du har redan hela
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    let showAll = false;
-    let allPosts = [];
-
-    async function getUser() {
-      const { data: { user } } = await supabase.auth.getUser();
-      return user;
-    }
-
-    async function createPost() {
-      const code = document.getElementById("secretCode").value;
-      if (code !== "HHGffajkskksm13324..1!?") {
-        alert("Fel kod!");
-        return;
-      }
-      const user = await getUser();
-      if (!user) return;
-
-      const { data: profile } = await supabase
-        .from("Profiles")
-        .select("username")
-        .eq("id", user.id)
-        .single();
-
-      const title = document.getElementById("title").value;
-      const content = document.getElementById("content").value;
-
-      await supabase.from("posts").insert({
-        title,
-        content,
-        user_id: user.id,
-        created_at: new Date().toISOString()
-      });
-
-      loadPosts();
-    }
-
-    async function loadPosts() {
-      const { data: posts } = await supabase
-        .from("posts")
-        .select("*, Profiles(username)")
-        .order("created_at", { ascending: false });
-      allPosts = posts;
-      renderPosts();
-    }
-
-    function renderPosts() {
-      const postsContainer = document.getElementById("posts");
-      postsContainer.innerHTML = "";
-
-      const visiblePosts = showAll ? allPosts : allPosts.slice(0, 5);
-
-      visiblePosts.forEach(post => {
-        const div = document.createElement("div");
-        div.className = "post";
-        div.innerHTML = `
-          <h3>${post.title}</h3>
-          <p>${post.content}</p>
-          <small>Av: ${post.Profiles?.username || "okänd"} - ${new Date(post.created_at).toLocaleString()}</small>
-
-          <div class="comments" id="comments-${post.id}"></div>
-          <textarea id="comment-text-${post.id}" rows="2" placeholder="Skriv en kommentar..."></textarea>
-          <button onclick="postComment(${post.id})">Kommentera</button>
-        `;
-        postsContainer.appendChild(div);
-        loadComments(post.id);
-      });
-    }
-
-    async function postComment(postId) {
-      const user = await getUser();
-      if (!user) return;
-      const commentText = document.getElementById(`comment-text-${postId}`).value;
-      await supabase.from("comments").insert({
-        post_id: postId,
-        user_id: user.id,
-        content: commentText,
-        created_at: new Date().toISOString()
-      });
-      loadComments(postId);
-    }
-
-    async function loadComments(postId) {
-      const container = document.getElementById(`comments-${postId}`);
-      const { data: comments } = await supabase
-        .from("comments")
-        .select("*, Profiles(username)")
-        .eq("post_id", postId)
-        .order("created_at", { ascending: true });
-
-      container.innerHTML = "";
-      comments.slice(0, 3).forEach(comment => {
-        const div = document.createElement("div");
-        div.className = "comment";
-        div.innerHTML = `<strong>${comment.Profiles?.username || "okänd"}</strong>: ${comment.content}`;
-        container.appendChild(div);
-      });
-      if (comments.length > 3) {
-        const btn = document.createElement("button");
-        btn.textContent = "Visa fler";
-        btn.onclick = () => {
-          container.innerHTML = "";
-          comments.forEach(comment => {
-            const div = document.createElement("div");
-            div.className = "comment";
-            div.innerHTML = `<strong>${comment.Profiles?.username || "okänd"}</strong>: ${comment.content}`;
-            container.appendChild(div);
-          });
-          btn.textContent = "Visa färre";
-          btn.onclick = () => loadComments(postId);
-          container.appendChild(btn);
-        };
-        container.appendChild(btn);
-      }
-    }
-
-    function toggleView() {
-      showAll = !showAll;
-      document.getElementById("toggleBtn").textContent = showAll ? "Visa färre" : "Visa alla";
-      renderPosts();
-    }
-
-    loadPosts();
-  </script>
+  <button id="toggle-posts" onclick="togglePosts()">Visa alla</button>
+  <script src="news.js"></script>
 </body>
 </html>
