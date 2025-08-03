@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Nyheter</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
   <style>
     body {
       background-color: #003578;
@@ -25,6 +25,7 @@
       border: none;
       padding: 10px;
       cursor: pointer;
+      margin: 5px;
     }
     input, textarea {
       background-color: #fff;
@@ -33,9 +34,13 @@
       padding: 5px;
       margin: 5px 0;
       width: 100%;
+      box-sizing: border-box;
     }
     #post-form-container {
       display: none;
+    }
+    .comment-section {
+      margin-top: 10px;
     }
   </style>
 </head>
