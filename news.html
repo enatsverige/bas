@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Nyheter</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js" defer></script>
   <style>
     body {
       background-color: #003578;
@@ -50,7 +50,7 @@
 </head>
 <body>
   <h1>Nyheter</h1>
-  <button onclick="window.location.href='index.html'">Tillbaka till startsidan</button>
+  <button onclick="checkCode()">Verifiera kod</button>
   <div>
     <input type="text" id="secret-code" placeholder="Ange hemlig kod för att posta">
     <button onclick="checkCode()">Verifiera kod</button>
@@ -69,16 +69,32 @@
   <script>
     console.log("JavaScript loaded in news.html");
 
-    const supabase = Supabase.createClient('https://jtbcqgjkvzgcjobfbtad.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0YmNxZ2prdnpnY2pvYmZidGFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1MzU0NTksImV4cCI6MjA2OTExMTQ1OX0.ogacm-3bmQI7WDgHZSI2r6jDOrDAGMfI7QtG0avYMTQ');
-    console.log("Supabase client initialized");
-
+    // Variabeldeklarationer högst upp för att undvika initialiseringsfel
     const SECRET_CODE = 'HHGffajkskksm13324..1!?';
     let showAllPosts = false;
     let currentUser = null;
     const commentsDisplayLimit = 3;
+    let supabase = null;
+
+    // Vänta på att Supabase-skriptet laddas
+    document.addEventListener('DOMContentLoaded', () => {
+      if (typeof Supabase === 'undefined') {
+        console.error("Supabase is not defined. Check if the CDN script loaded correctly.");
+        alert("Kunde inte ladda Supabase. Kontrollera din internetanslutning eller försök igen senare.");
+        return;
+      }
+      console.log("Supabase library loaded");
+      supabase = Supabase.createClient('https://jtbcqgjkvzgcjobfbtad.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0YmNxZ2prdnpnY2pvYmZidGFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1MzU0NTksImV4cCI6MjA2OTExMTQ1OX0.ogacm-3bmQI7WDgHZSI2r6jDOrDAGMfI7QtG0avYMTQ');
+      console.log("Supabase client initialized");
+      checkAuth();
+    });
 
     async function checkAuth() {
       console.log("Checking authentication...");
+      if (!supabase) {
+        console.error("Supabase client not initialized");
+        return;
+      }
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         console.log("No user found, redirecting to index.html");
@@ -104,6 +120,10 @@
 
     async function createPost() {
       console.log("Creating new post...");
+      if (!supabase) {
+        console.error("Supabase client not initialized");
+        return;
+      }
       const title = document.getElementById('post-title').value;
       const content = document.getElementById('post-content').value;
       const mediaUrl = document.getElementById('post-media').value;
@@ -131,6 +151,10 @@
 
     async function loadPosts() {
       console.log("Loading posts...");
+      if (!supabase) {
+        console.error("Supabase client not initialized");
+        return;
+      }
       const { data: posts, error } = await supabase
         .from('posts')
         .select(`
@@ -194,6 +218,10 @@
 
     async function likePost(postId, isLiked) {
       console.log(`Liking post ${postId}, isLiked: ${isLiked}`);
+      if (!supabase) {
+        console.error("Supabase client not initialized");
+        return;
+      }
       const { error } = await supabase
         .from('post_likes')
         .upsert({ post_id: postId, user_id: currentUser.id, is_liked: isLiked });
@@ -207,6 +235,10 @@
 
     async function addComment(postId) {
       console.log(`Adding comment to post ${postId}`);
+      if (!supabase) {
+        console.error("Supabase client not initialized");
+        return;
+      }
       const content = document.getElementById(`comment-${postId}`).value;
       if (!content) {
         console.log("Comment content missing");
@@ -227,6 +259,10 @@
 
     async function likeComment(commentId, isLiked) {
       console.log(`Liking comment ${commentId}, isLiked: ${isLiked}`);
+      if (!supabase) {
+        console.error("Supabase client not initialized");
+        return;
+      }
       const { error } = await supabase
         .from('comment_likes')
         .upsert({ comment_id: commentId, user_id: currentUser.id, is_liked: isLiked });
@@ -252,6 +288,10 @@
 
     document.getElementById('search').addEventListener('input', async (e) => {
       console.log("Searching posts...");
+      if (!supabase) {
+        console.error("Supabase client not initialized");
+        return;
+      }
       const query = e.target.value.toLowerCase();
       const { data: posts, error } = await supabase
         .from('posts')
@@ -313,8 +353,6 @@
         postsDiv.appendChild(postDiv);
       }
     });
-
-    checkAuth();
   </script>
 </body>
 </html>
