@@ -4,184 +4,182 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Nyheter & Viktig Info</title>
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
     body {
       background-color: #003578;
       color: #ffc200;
       font-family: Arial, sans-serif;
       margin: 0;
-      padding: 20px;
+      padding: 1rem;
     }
-    h1, h2, h3, h4, h5, h6, p, label {
-      color: #ffc200;
-    }
-    input, textarea {
+    input, textarea, button {
+      display: block;
+      margin: 0.5rem 0;
+      padding: 0.5rem;
       width: 100%;
-      padding: 10px;
-      margin: 5px 0 10px 0;
-      border: none;
-      border-radius: 5px;
-    }
-    button {
-      background-color: #ffc200;
-      color: #003578;
-      padding: 10px 20px;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
+      font-size: 1rem;
     }
     .post {
-      border: 1px solid #ffc200;
+      background-color: #002b60;
+      padding: 1rem;
       border-radius: 10px;
-      padding: 10px;
-      margin: 20px 0;
-    }
-    .comments {
-      margin-top: 10px;
-      background: #002c66;
-      padding: 10px;
-      border-radius: 10px;
+      margin-bottom: 1rem;
     }
     .comment {
-      border-bottom: 1px solid #ffc200;
-      padding: 5px 0;
+      background-color: #001f4d;
+      margin-top: 0.5rem;
+      padding: 0.5rem;
+      border-radius: 8px;
+    }
+    .comment-button {
+      background: none;
+      color: #ffc200;
+      cursor: pointer;
+      margin-right: 0.5rem;
     }
   </style>
 </head>
 <body>
   <h1>Nyheter & Viktig Info</h1>
 
-  <div>
-    <h2>Skapa Nytt Inlägg</h2>
-    <input type="text" id="post-code" placeholder="Säkerhetskod krävs...">
-    <input type="text" id="post-title" placeholder="Titel">
-    <textarea id="post-content" placeholder="Skriv något..."></textarea>
-    <input type="text" id="post-media" placeholder="Bild eller video URL (valfritt)">
-    <button id="post-button">Posta</button>
+  <div id="postForm">
+    <input id="secretCode" type="text" placeholder="Kod för att posta" />
+    <input id="title" type="text" placeholder="Titel" />
+    <textarea id="content" placeholder="Skriv nyhet här..." rows="4"></textarea>
+    <button onclick="createPost()">Posta</button>
   </div>
 
-  <div id="posts-container"></div>
-  <button id="toggle-posts">Visa alla</button>
+  <h2>Inlägg</h2>
+  <div id="posts"></div>
+  <button id="toggleBtn" onclick="toggleView()">Visa alla</button>
 
-  <script type="module">
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+  <script>
+    const SUPABASE_URL = "https://jtbcqgjkvzgcjobfbtad.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."; // du har redan hela
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    const supabase = createClient(
-      'https://jtbcqgjkvzgcjobfbtad.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0YmNxZ2prdnpnY2pvYmZidGFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1MzU0NTksImV4cCI6MjA2OTExMTQ1OX0.ogacm-3bmQI7WDgHZSI2r6jDOrDAGMfI7QtG0avYMTQ'
-    );
-
-    const postButton = document.getElementById('post-button');
-    const postsContainer = document.getElementById('posts-container');
-    const toggleButton = document.getElementById('toggle-posts');
-    let showingAll = false;
+    let showAll = false;
     let allPosts = [];
 
     async function getUser() {
-      const {
-        data: { user }
-      } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
       return user;
     }
 
     async function createPost() {
-      const code = document.getElementById('post-code').value;
-      if (code !== 'HHGffajkskksm13324..1!?') return alert('Fel kod.');
-
+      const code = document.getElementById("secretCode").value;
+      if (code !== "HHGffajkskksm13324..1!?") {
+        alert("Fel kod!");
+        return;
+      }
       const user = await getUser();
-      if (!user) return alert('Du måste vara inloggad.');
+      if (!user) return;
 
-      const title = document.getElementById('post-title').value;
-      const content = document.getElementById('post-content').value;
-      const media = document.getElementById('post-media').value;
+      const { data: profile } = await supabase
+        .from("Profiles")
+        .select("username")
+        .eq("id", user.id)
+        .single();
 
-      const { error } = await supabase.from('posts').insert({
+      const title = document.getElementById("title").value;
+      const content = document.getElementById("content").value;
+
+      await supabase.from("posts").insert({
         title,
         content,
-        media_url: media,
-        user_id: user.id
+        user_id: user.id,
+        created_at: new Date().toISOString()
       });
 
-      if (error) {
-        alert('Misslyckades att posta.');
-        console.error(error);
-      } else {
-        alert('Upplagt!');
-        loadPosts();
-      }
+      loadPosts();
     }
 
     async function loadPosts() {
       const { data: posts } = await supabase
-        .from('posts')
-        .select('*, Profiles(username)')
-        .order('created_at', { ascending: false });
-
+        .from("posts")
+        .select("*, Profiles(username)")
+        .order("created_at", { ascending: false });
       allPosts = posts;
       renderPosts();
     }
 
     function renderPosts() {
-      postsContainer.innerHTML = '';
-      const visiblePosts = showingAll ? allPosts : allPosts.slice(0, 5);
+      const postsContainer = document.getElementById("posts");
+      postsContainer.innerHTML = "";
+
+      const visiblePosts = showAll ? allPosts : allPosts.slice(0, 5);
 
       visiblePosts.forEach(post => {
-        const div = document.createElement('div');
-        div.className = 'post';
+        const div = document.createElement("div");
+        div.className = "post";
         div.innerHTML = `
           <h3>${post.title}</h3>
           <p>${post.content}</p>
-          ${post.media_url ? `<img src="${post.media_url}" width="100%">` : ''}
-          <p>Upplagt av ${post.Profiles?.username || 'okänt'} den ${new Date(post.created_at).toLocaleString()}</p>
+          <small>Av: ${post.Profiles?.username || "okänd"} - ${new Date(post.created_at).toLocaleString()}</small>
+
           <div class="comments" id="comments-${post.id}"></div>
-          <input placeholder="Kommentera..." id="comment-input-${post.id}">
-          <button onclick="addComment('${post.id}')">Kommentera</button>
+          <textarea id="comment-text-${post.id}" rows="2" placeholder="Skriv en kommentar..."></textarea>
+          <button onclick="postComment(${post.id})">Kommentera</button>
         `;
         postsContainer.appendChild(div);
         loadComments(post.id);
       });
     }
 
-    toggleButton.addEventListener('click', () => {
-      showingAll = !showingAll;
-      renderPosts();
-      toggleButton.textContent = showingAll ? 'Visa färre' : 'Visa alla';
-    });
-
-    window.addComment = async function(postId) {
+    async function postComment(postId) {
       const user = await getUser();
-      if (!user) return alert('Du måste vara inloggad för att kommentera.');
-      const input = document.getElementById(`comment-input-${postId}`);
-      const text = input.value;
-      input.value = '';
-      await supabase.from('comments').insert({
+      if (!user) return;
+      const commentText = document.getElementById(`comment-text-${postId}`).value;
+      await supabase.from("comments").insert({
         post_id: postId,
         user_id: user.id,
-        content: text
+        content: commentText,
+        created_at: new Date().toISOString()
       });
       loadComments(postId);
     }
 
     async function loadComments(postId) {
-      const { data: comments } = await supabase
-        .from('comments')
-        .select('*, Profiles(username)')
-        .eq('post_id', postId);
-
       const container = document.getElementById(`comments-${postId}`);
-      container.innerHTML = '<h4>Kommentarer</h4>';
+      const { data: comments } = await supabase
+        .from("comments")
+        .select("*, Profiles(username)")
+        .eq("post_id", postId)
+        .order("created_at", { ascending: true });
 
-      (comments || []).forEach(c => {
-        const commentDiv = document.createElement('div');
-        commentDiv.className = 'comment';
-        commentDiv.innerHTML = `
-          <strong>${c.Profiles?.username || 'okänt'}:</strong> ${c.content}
-        `;
-        container.appendChild(commentDiv);
+      container.innerHTML = "";
+      comments.slice(0, 3).forEach(comment => {
+        const div = document.createElement("div");
+        div.className = "comment";
+        div.innerHTML = `<strong>${comment.Profiles?.username || "okänd"}</strong>: ${comment.content}`;
+        container.appendChild(div);
       });
+      if (comments.length > 3) {
+        const btn = document.createElement("button");
+        btn.textContent = "Visa fler";
+        btn.onclick = () => {
+          container.innerHTML = "";
+          comments.forEach(comment => {
+            const div = document.createElement("div");
+            div.className = "comment";
+            div.innerHTML = `<strong>${comment.Profiles?.username || "okänd"}</strong>: ${comment.content}`;
+            container.appendChild(div);
+          });
+          btn.textContent = "Visa färre";
+          btn.onclick = () => loadComments(postId);
+          container.appendChild(btn);
+        };
+        container.appendChild(btn);
+      }
     }
 
-    postButton.addEventListener('click', createPost);
+    function toggleView() {
+      showAll = !showAll;
+      document.getElementById("toggleBtn").textContent = showAll ? "Visa färre" : "Visa alla";
+      renderPosts();
+    }
+
     loadPosts();
   </script>
 </body>
