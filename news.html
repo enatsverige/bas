@@ -1,244 +1,221 @@
 <!DOCTYPE html>
 <html lang="sv">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Nyheter / Viktig info</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <title>Nyheter & Viktig info</title>
   <style>
-    .news-post, .comment {
-      border: 1px solid #ccc;
+    body {
+      background-color: #0d47a1;
+      font-family: Arial, sans-serif;
+      color: white;
+      margin: 20px;
+    }
+    .post {
+      background-color: #1565c0;
       padding: 10px;
-      margin: 10px 0;
+      margin-bottom: 10px;
       border-radius: 8px;
-      background-color: #f9f9f9;
     }
-    .comment-controls, .post-controls {
-      margin-top: 5px;
+    .post-header {
+      font-weight: bold;
+      margin-bottom: 5px;
     }
-    .search-box {
-      margin: 20px 0;
+    .buttons, .comments {
+      margin-top: 10px;
     }
-    .btn {
-      padding: 4px 8px;
-      margin-right: 5px;
+    button {
+      margin-right: 10px;
+      background-color: #1e88e5;
+      border: none;
+      color: white;
+      padding: 6px 10px;
+      border-radius: 4px;
       cursor: pointer;
     }
-    .comment-list { margin-top: 10px; }
+    #logout {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: #f44336;
+    }
+    .comment {
+      background-color: #1976d2;
+      margin-top: 5px;
+      padding: 5px;
+      border-radius: 5px;
+    }
+    .comment-header {
+      font-size: 0.85em;
+      color: #bbb;
+    }
+    #toggle-all {
+      margin-top: 20px;
+    }
   </style>
 </head>
 <body>
-  <div id="app">
-    <h1>Nyheter & Viktig info</h1>
 
-    <!-- Sökfält -->
-    <input type="text" id="search" class="search-box" placeholder="Sök nyheter..." />
+<h1>Nyheter & Viktig info</h1>
+<div id="posts"></div>
+<button id="toggle-all">Visa alla</button>
+<button id="logout">Logga ut</button>
 
-    <!-- Adminformulär -->
-    <div id="admin-post-form" style="display: none;">
-      <h3>Lägg upp nyhet</h3>
-      <input type="text" id="post-title" placeholder="Titel" /><br><br>
-      <textarea id="post-content" placeholder="Vad vill du meddela?"></textarea><br><br>
-      <input type="file" id="post-media" accept="image/*,video/*" /><br><br>
-      <button id="submit-post">Lägg upp</button>
-      <hr>
-    </div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const supabase = supabase.createClient('https://jtbcqgjkvzgcjobfbtad.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0YmNxZ2prdnpnY2pvYmZidGFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1MzU0NTksImV4cCI6MjA2OTExMTQ1OX0.ogacm-3bmQI7WDgHZSI2r6jDOrDAGMfI7QtG0avYMTQ');
+let showingAll = false;
 
-    <!-- Lista med nyheter -->
-    <div id="news-list"></div>
-  </div>
+async function checkAuth() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    alert('Du måste vara inloggad.');
+    window.location.href = 'index.html';
+  } else {
+    loadPosts();
+  }
+}
 
-  <script>
-    const currentUser = {
-      email: "ninjafjnaten1@gmail.com",
-      username: "Ninjafjnaten",
-      firstName: "Viktor"
-    };
+async function loadPosts() {
+  const limit = showingAll ? 100 : 5;
+  const { data: posts } = await supabase
+    .from('posts')
+    .select('id, title, content, media_url, user_id, created_at, Profiles(username)')
+    .order('created_at', { ascending: false })
+    .limit(limit);
 
-    const isAdmin = currentUser.email === "ninjafjnaten1@gmail.com";
-    const newsList = document.getElementById("news-list");
-    const searchInput = document.getElementById("search");
+  const postsContainer = document.getElementById('posts');
+  postsContainer.innerHTML = '';
 
-    if (isAdmin) {
-      document.getElementById("admin-post-form").style.display = "block";
+  for (const post of posts) {
+    const postDiv = document.createElement('div');
+    postDiv.classList.add('post');
+
+    const date = new Date(post.created_at).toLocaleString();
+    postDiv.innerHTML = `
+      <div class="post-header">${post.title} - <i>${post.Profiles?.username || 'Okänd'}</i> - <small>${date}</small></div>
+      <div>${post.content || ''}</div>
+      ${post.media_url ? `<img src="${post.media_url}" style="max-width: 100%; margin-top: 10px; border-radius: 5px;" />` : ''}
+      <div class="buttons">
+        <button onclick="toggleLike(${post.id}, true)">👍</button>
+        <span id="like-count-${post.id}">0</span>
+        <button onclick="toggleLike(${post.id}, false)">👎</button>
+        <span id="dislike-count-${post.id}">0</span>
+      </div>
+      <div class="comments" id="comments-${post.id}"></div>
+      <input type="text" placeholder="Kommentera..." id="comment-input-${post.id}" />
+      <button onclick="submitComment(${post.id})">Skicka</button>
+    `;
+    postsContainer.appendChild(postDiv);
+    await loadLikes(post.id);
+    await loadComments(post.id);
+  }
+}
+
+async function loadLikes(postId) {
+  const { data } = await supabase
+    .from('post_likes')
+    .select('is_liked')
+    .eq('post_id', postId);
+
+  const likes = data.filter(l => l.is_liked).length;
+  const dislikes = data.filter(l => !l.is_liked).length;
+
+  document.getElementById(`like-count-${postId}`).textContent = likes;
+  document.getElementById(`dislike-count-${postId}`).textContent = dislikes;
+}
+
+async function toggleLike(postId, isLike) {
+  const { data: { session } } = await supabase.auth.getSession();
+  const userId = session.user.id;
+  const { data: existing } = await supabase
+    .from('post_likes')
+    .select('*')
+    .eq('post_id', postId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (existing) {
+    if (existing.is_liked === isLike) {
+      await supabase.from('post_likes').delete().eq('post_id', postId).eq('user_id', userId);
+    } else {
+      await supabase.from('post_likes').update({ is_liked: isLike }).eq('post_id', postId).eq('user_id', userId);
     }
+  } else {
+    await supabase.from('post_likes').insert({ post_id: postId, user_id: userId, is_liked: isLike });
+  }
+  await loadLikes(postId);
+}
 
-    function savePosts(posts) {
-      localStorage.setItem("news-posts", JSON.stringify(posts));
-    }
+async function loadComments(postId) {
+  const { data: comments } = await supabase
+    .from('comments')
+    .select('id, content, created_at, user_id, Profiles(username), comment_likes(user_id)')
+    .eq('post_id', postId);
 
-    function loadPosts() {
-      return JSON.parse(localStorage.getItem("news-posts")) || [];
-    }
+  const commentContainer = document.getElementById(`comments-${postId}`);
+  commentContainer.innerHTML = '';
 
-    function renderPosts(posts) {
-      newsList.innerHTML = "";
-      const filtered = posts
-        .filter(post => post.title.toLowerCase().includes(searchInput.value.toLowerCase()) || post.content.toLowerCase().includes(searchInput.value.toLowerCase()))
-        .sort((a, b) => new Date(b.date) - new Date(a.date));
-      
-      filtered.forEach((post, index) => {
-        const div = document.createElement("div");
-        div.className = "news-post";
+  const sorted = comments.sort((a, b) => b.comment_likes.length - a.comment_likes.length);
+  const topThree = sorted.slice(0, 3);
 
-        let mediaHTML = "";
-        if (post.media && post.media.startsWith("data:")) {
-          if (post.media.includes("image")) {
-            mediaHTML = `<img src="${post.media}" alt="bild" style="max-width:100%"/>`;
-          } else if (post.media.includes("video")) {
-            mediaHTML = `<video controls style="max-width:100%"><source src="${post.media}" /></video>`;
-          }
-        }
+  for (const comment of topThree) {
+    const div = document.createElement('div');
+    div.className = 'comment';
+    div.innerHTML = `
+      <div class="comment-header">${comment.Profiles?.username || 'Okänd'} - ${new Date(comment.created_at).toLocaleString()}</div>
+      ${comment.content}
+      <div>
+        <button onclick="toggleCommentLike(${comment.id})">❤️</button>
+        <span>${comment.comment_likes.length}</span>
+      </div>
+    `;
+    commentContainer.appendChild(div);
+  }
+}
 
-        div.innerHTML = `
-          <h3>${post.title}</h3>
-          <p>${post.content}</p>
-          ${mediaHTML}
-          <small>Upplagd av ${post.author} - ${new Date(post.date).toLocaleString()}</small>
-          <div class="post-controls">
-            <button class="btn" onclick="likePost(${index})">👍 ${post.likes || 0}</button>
-            <button class="btn" onclick="dislikePost(${index})">👎 ${post.dislikes || 0}</button>
-          </div>
-          <div class="comment-list" id="comments-${index}"></div>
-          <input type="text" placeholder="Kommentera..." onkeydown="handleCommentKey(event, ${index})"/>
-        `;
-        newsList.appendChild(div);
-        renderComments(post, index);
-      });
-    }
+async function toggleCommentLike(commentId) {
+  const { data: { session } } = await supabase.auth.getSession();
+  const userId = session.user.id;
+  const { data: existing } = await supabase
+    .from('comment_likes')
+    .select('*')
+    .eq('comment_id', commentId)
+    .eq('user_id', userId)
+    .maybeSingle();
 
-    function renderComments(post, postIndex) {
-      const commentDiv = document.getElementById(`comments-${postIndex}`);
-      commentDiv.innerHTML = "";
+  if (existing) {
+    await supabase.from('comment_likes').delete().eq('comment_id', commentId).eq('user_id', userId);
+  } else {
+    await supabase.from('comment_likes').insert({ comment_id: commentId, user_id: userId });
+  }
+  loadPosts();
+}
 
-      if (!post.comments) post.comments = [];
+async function submitComment(postId) {
+  const input = document.getElementById(`comment-input-${postId}`);
+  const content = input.value.trim();
+  if (!content) return;
 
-      let sortedComments = [...post.comments].sort((a, b) => (b.likes || 0) - (a.likes || 0));
-      const top3 = sortedComments.slice(0, 3);
-      const rest = sortedComments.slice(3);
+  const { data: { session } } = await supabase.auth.getSession();
+  const userId = session.user.id;
 
-      const renderComment = (c, idx) => {
-        const el = document.createElement("div");
-        el.className = "comment";
-        el.innerHTML = `
-          <b>${c.author}</b>: ${c.text}
-          <div class="comment-controls">
-            <button class="btn" onclick="likeComment(${postIndex}, ${idx})">👍 ${c.likes || 0}</button>
-            <button class="btn" onclick="dislikeComment(${postIndex}, ${idx})">👎 ${c.dislikes || 0}</button>
-          </div>
-        `;
-        commentDiv.appendChild(el);
-      };
+  await supabase.from('comments').insert({ post_id: postId, user_id: userId, content });
+  input.value = '';
+  await loadComments(postId);
+}
 
-      top3.forEach(renderComment);
+document.getElementById('logout').addEventListener('click', async () => {
+  await supabase.auth.signOut();
+  window.location.href = 'index.html';
+});
 
-      if (rest.length > 0) {
-        const moreBtn = document.createElement("button");
-        moreBtn.textContent = "Visa fler";
-        moreBtn.className = "btn";
-        let expanded = false;
+document.getElementById('toggle-all').addEventListener('click', () => {
+  showingAll = !showingAll;
+  document.getElementById('toggle-all').innerText = showingAll ? 'Visa färre' : 'Visa alla';
+  loadPosts();
+});
 
-        moreBtn.onclick = () => {
-          if (!expanded) {
-            rest.forEach(renderComment);
-            moreBtn.textContent = "Visa färre";
-          } else {
-            renderPosts(loadPosts()); // re-render
-          }
-          expanded = !expanded;
-        };
-
-        commentDiv.appendChild(moreBtn);
-      }
-    }
-
-    function handleCommentKey(e, postIndex) {
-      if (e.key === "Enter" && e.target.value.trim()) {
-        const posts = loadPosts();
-        const comment = {
-          author: currentUser.username,
-          text: e.target.value.trim(),
-          likes: 0,
-          dislikes: 0
-        };
-        if (!posts[postIndex].comments) posts[postIndex].comments = [];
-        posts[postIndex].comments.push(comment);
-        savePosts(posts);
-        renderPosts(posts);
-      }
-    }
-
-    function likePost(index) {
-      const posts = loadPosts();
-      posts[index].likes = (posts[index].likes || 0) + 1;
-      savePosts(posts);
-      renderPosts(posts);
-    }
-
-    function dislikePost(index) {
-      const posts = loadPosts();
-      posts[index].dislikes = (posts[index].dislikes || 0) + 1;
-      savePosts(posts);
-      renderPosts(posts);
-    }
-
-    function likeComment(postIndex, commentIndex) {
-      const posts = loadPosts();
-      posts[postIndex].comments[commentIndex].likes = (posts[postIndex].comments[commentIndex].likes || 0) + 1;
-      savePosts(posts);
-      renderPosts(posts);
-    }
-
-    function dislikeComment(postIndex, commentIndex) {
-      const posts = loadPosts();
-      posts[postIndex].comments[commentIndex].dislikes = (posts[postIndex].comments[commentIndex].dislikes || 0) + 1;
-      savePosts(posts);
-      renderPosts(posts);
-    }
-
-    // Lägga upp nyhet
-    document.getElementById("submit-post").onclick = () => {
-      const title = document.getElementById("post-title").value;
-      const content = document.getElementById("post-content").value;
-      const fileInput = document.getElementById("post-media");
-      const file = fileInput.files[0];
-
-      const reader = new FileReader();
-      reader.onload = function () {
-        const media = reader.result;
-        const newPost = {
-          title,
-          content,
-          media,
-          author: currentUser.username,
-          date: new Date(),
-          likes: 0,
-          dislikes: 0,
-          comments: []
-        };
-        const posts = loadPosts();
-        posts.push(newPost);
-        savePosts(posts);
-        renderPosts(posts);
-        document.getElementById("post-title").value = "";
-        document.getElementById("post-content").value = "";
-        fileInput.value = "";
-      };
-
-      if (file) {
-        reader.readAsDataURL(file);
-      } else {
-        reader.onload();
-      }
-    };
-
-    searchInput.oninput = () => {
-      renderPosts(loadPosts());
-    };
-
-    // Initiera
-    renderPosts(loadPosts());
-  </script>
+checkAuth();
+</script>
 </body>
 </html>
-
