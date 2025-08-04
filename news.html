@@ -91,10 +91,11 @@
 
         // Kontrollera inloggning
         async function checkAuth() {
-            const { data: { user } } = await supabase.auth.getUser();
+            const { data: { user }, error } = await supabase.auth.getUser();
             const authStatus = document.getElementById('auth-status');
-            if (!user) {
+            if (error || !user) {
                 authStatus.innerHTML = 'Du måste vara inloggad. <a href="index.html">Logga in</a>';
+                console.error('Fel vid autentisering:', error);
                 return false;
             }
             authStatus.innerHTML = `Inloggad som: ${user.email}`;
@@ -127,45 +128,83 @@
                 return;
             }
 
-            const { error } = await supabase
-                .from('posts')
-                .insert([{ title, content, media_url: mediaUrl, user_id: user.id }]);
+            try {
+                const { error } = await supabase
+                    .from('posts')
+                    .insert([{ title, content, media_url: mediaUrl, user_id: user.id }]);
 
-            if (error) {
-                console.error('Fel vid publicering:', error);
-                alert('Kunde inte publicera inlägget.');
-            } else {
-                document.getElementById('post-title').value = '';
-                document.getElementById('post-content').value = '';
-                document.getElementById('post-media').value = '';
-                fetchPosts();
+                if (error) {
+                    console.error('Fel vid publicering:', error);
+                    alert('Kunde inte publicera inlägget.');
+                } else {
+                    document.getElementById('post-title').value = '';
+                    document.getElementById('post-content').value = '';
+                    document.getElementById('post-media').value = '';
+                    fetchPosts();
+                }
+            } catch (err) {
+                console.error('Oväntat fel vid publicering:', err);
             }
         }
 
         // Hämta och visa inlägg
         async function fetchPosts(searchQuery = '') {
-            const { data: posts, error } = await supabase
-                .from('posts')
-                .select(`
-                    *,
-                    Profiles!posts_user_id_fkey(username),
-                    post_likes!post_likes_post_id_fkey(is_liked),
-                    comments!comments_post_id_fkey(
-                        *,
-                        Profiles!comments_user_id_fkey(username),
-                        comment_likes!comment_likes_comment_id_fkey(is_liked)
-                    )
-                `)
-                .order('created_at', { ascending: false })
-                .ilike('title', `%${searchQuery}%`);
+            try {
+                // Hämta posts, post_likes och comments
+                const { data: posts, error: postsError } = await supabase
+                    .from('posts')
+                    .select(`
+                        id, title, content, media_url, user_id, created_at,
+                        post_likes!post_likes_post_id_fkey(is_liked),
+                        comments!comments_post_id_fkey(id, content, user_id, created_at, comment_likes!comment_likes_comment_id_fkey(is_liked))
+                    `)
+                    .order('created_at', { ascending: false })
+                    .ilike('title', `%${searchQuery}%`);
 
-            if (error) {
-                console.error('Fel vid hämtning av inlägg:', error);
-                return;
+                if (postsError) {
+                    console.error('Fel vid hämtning av inlägg:', postsError);
+                    return;
+                }
+
+                // Hämta usernames från Profiles för posts och comments
+                const userIds = [
+                    ...new Set([
+                        ...posts.map(post => post.user_id),
+                        ...posts.flatMap(post => post.comments.map(comment => comment.user_id))
+                    ])
+                ];
+
+                const { data: profiles, error: profilesError } = await supabase
+                    .from('Profiles')
+                    .select('id, username')
+                    .in('id', userIds);
+
+                if (profilesError) {
+                    console.error('Fel vid hämtning av profiler:', profilesError);
+                    return;
+                }
+
+                // Skapa en lookup för usernames
+                const usernameMap = profiles.reduce((map, profile) => {
+                    map[profile.id] = profile.username;
+                    return map;
+                }, {});
+
+                // Kombinera data
+                allPosts = posts.map(post => ({
+                    ...post,
+                    username: usernameMap[post.user_id] || 'Okänd användare',
+                    comments: post.comments.map(comment => ({
+                        ...comment,
+                        username: usernameMap[comment.user_id] || 'Okänd användare'
+                    }))
+                }));
+
+                console.log('Hämtade inlägg:', allPosts); // Loggning för felsökning
+                updatePostsDisplay();
+            } catch (err) {
+                console.error('Oväntat fel vid hämtning av inlägg:', err);
             }
-
-            allPosts = posts;
-            updatePostsDisplay();
         }
 
         // Uppdatera visning av inlägg
@@ -175,23 +214,25 @@
             displayedPosts = showAll ? allPosts : allPosts.slice(0, 5);
             
             postsContainer.innerHTML = displayedPosts.map(post => {
-                const likes = post.post_likes.filter(like => like.is_liked).length;
-                const dislikes = post.post_likes.length - likes;
+                const likes = post.post_likes ? post.post_likes.filter(like => like.is_liked).length : 0;
+                const dislikes = post.post_likes ? post.post_likes.length - likes : 0;
                 const topComments = post.comments
-                    .map(comment => ({
-                        ...comment,
-                        likes: comment.comment_likes.filter(like => like.is_liked).length,
-                        dislikes: comment.comment_likes.length - comment.comment_likes.filter(like => like.is_liked).length
-                    }))
-                    .sort((a, b) => b.likes - a.likes)
-                    .slice(0, 3);
+                    ? post.comments
+                        .map(comment => ({
+                            ...comment,
+                            likes: comment.comment_likes ? comment.comment_likes.filter(like => like.is_liked).length : 0,
+                            dislikes: comment.comment_likes ? comment.comment_likes.length - comment.comment_likes.filter(like => like.is_liked).length : 0
+                        }))
+                        .sort((a, b) => b.likes - a.likes)
+                        .slice(0, 3)
+                    : [];
 
                 return `
                     <div class="post">
                         <h2>${post.title}</h2>
                         <p>${post.content}</p>
                         ${post.media_url ? `<img src="${post.media_url}" alt="Media" style="max-width: 100%;">` : ''}
-                        <p>Upplagt av: ${post.Profiles.username} | ${new Date(post.created_at).toLocaleString()}</p>
+                        <p>Upplagt av: ${post.username} | ${new Date(post.created_at).toLocaleString()}</p>
                         <div class="post-actions">
                             <button onclick="likePost('${post.id}', true)">Gilla (${likes})</button>
                             <button onclick="likePost('${post.id}', false)">Ogilla (${dislikes})</button>
@@ -201,25 +242,25 @@
                             ${topComments.map(comment => `
                                 <div class="comment">
                                     <p>${comment.content}</p>
-                                    <p>Av: ${comment.Profiles.username} | ${new Date(comment.created_at).toLocaleString()}</p>
+                                    <p>Av: ${comment.username} | ${new Date(comment.created_at).toLocaleString()}</p>
                                     <div class="comment-actions">
                                         <button onclick="likeComment('${comment.id}', true)">Gilla (${comment.likes})</button>
                                         <button onclick="likeComment('${comment.id}', false)">Ogilla (${comment.dislikes})</button>
                                     </div>
                                 </div>
                             `).join('')}
-                            <button onclick="toggleComments('${post.id}')">${post.comments.length > 3 ? 'Visa fler' : ''}</button>
+                            <button onclick="toggleComments('${post.id}')">${post.comments && post.comments.length > 3 ? 'Visa fler' : ''}</button>
                             <div id="all-comments-${post.id}" class="hidden">
-                                ${post.comments.map(comment => `
+                                ${post.comments ? post.comments.map(comment => `
                                     <div class="comment">
                                         <p>${comment.content}</p>
-                                        <p>Av: ${comment.Profiles.username} | ${new Date(comment.created_at).toLocaleString()}</p>
+                                        <p>Av: ${comment.username} | ${new Date(comment.created_at).toLocaleString()}</p>
                                         <div class="comment-actions">
-                                            <button onclick="likeComment('${comment.id}', true)">Gilla (${comment.comment_likes.filter(like => like.is_liked).length})</button>
-                                            <button onclick="likeComment('${comment.id}', false)">Ogilla (${comment.comment_likes.length - comment.comment_likes.filter(like => like.is_liked).length})</button>
+                                            <button onclick="likeComment('${comment.id}', true)">Gilla (${comment.comment_likes ? comment.comment_likes.filter(like => like.is_liked).length : 0})</button>
+                                            <button onclick="likeComment('${comment.id}', false)">Ogilla (${comment.comment_likes ? comment.comment_likes.length - comment.comment_likes.filter(like => like.is_liked).length : 0})</button>
                                         </div>
                                     </div>
-                                `).join('')}
+                                `).join('') : ''}
                             </div>
                             <textarea id="comment-content-${post.id}" placeholder="Skriv en kommentar"></textarea>
                             <button onclick="addComment('${post.id}')">Kommentera</button>
@@ -250,26 +291,30 @@
             const user = await checkAuth();
             if (!user) return;
 
-            const { data: existingLike } = await supabase
-                .from('post_likes')
-                .select('*')
-                .eq('post_id', postId)
-                .eq('user_id', user.id)
-                .single();
-
-            if (existingLike) {
-                await supabase
+            try {
+                const { data: existingLike } = await supabase
                     .from('post_likes')
-                    .update({ is_liked: isLiked })
+                    .select('*')
                     .eq('post_id', postId)
-                    .eq('user_id', user.id);
-            } else {
-                await supabase
-                    .from('post_likes')
-                    .insert([{ post_id: postId, user_id: user.id, is_liked: isLiked }]);
-            }
+                    .eq('user_id', user.id)
+                    .single();
 
-            fetchPosts();
+                if (existingLike) {
+                    await supabase
+                        .from('post_likes')
+                        .update({ is_liked: isLiked })
+                        .eq('post_id', postId)
+                        .eq('user_id', user.id);
+                } else {
+                    await supabase
+                        .from('post_likes')
+                        .insert([{ post_id: postId, user_id: user.id, is_liked: isLiked }]);
+                }
+
+                fetchPosts();
+            } catch (err) {
+                console.error('Fel vid gilla/ogilla inlägg:', err);
+            }
         }
 
         // Lägg till kommentar
@@ -283,12 +328,16 @@
                 return;
             }
 
-            await supabase
-                .from('comments')
-                .insert([{ post_id: postId, user_id: user.id, content }]);
+            try {
+                await supabase
+                    .from('comments')
+                    .insert([{ post_id: postId, user_id: user.id, content }]);
 
-            document.getElementById(`comment-content-${postId}`).value = '';
-            fetchPosts();
+                document.getElementById(`comment-content-${postId}`).value = '';
+                fetchPosts();
+            } catch (err) {
+                console.error('Fel vid kommentering:', err);
+            }
         }
 
         // Gilla/ogilla kommentar
@@ -296,26 +345,30 @@
             const user = await checkAuth();
             if (!user) return;
 
-            const { data: existingLike } = await supabase
-                .from('comment_likes')
-                .select('*')
-                .eq('comment_id', commentId)
-                .eq('user_id', user.id)
-                .single();
-
-            if (existingLike) {
-                await supabase
+            try {
+                const { data: existingLike } = await supabase
                     .from('comment_likes')
-                    .update({ is_liked: isLiked })
+                    .select('*')
                     .eq('comment_id', commentId)
-                    .eq('user_id', user.id);
-            } else {
-                await supabase
-                    .from('comment_likes')
-                    .insert([{ comment_id: commentId, user_id: user.id, is_liked: isLiked }]);
-            }
+                    .eq('user_id', user.id)
+                    .single();
 
-            fetchPosts();
+                if (existingLike) {
+                    await supabase
+                        .from('comment_likes')
+                        .update({ is_liked: isLiked })
+                        .eq('comment_id', commentId)
+                        .eq('user_id', user.id);
+                } else {
+                    await supabase
+                        .from('comment_likes')
+                        .insert([{ comment_id: commentId, user_id: user.id, is_liked: isLiked }]);
+                }
+
+                fetchPosts();
+            } catch (err) {
+                console.error('Fel vid gilla/ogilla kommentar:', err);
+            }
         }
 
         // Sök inlägg
