@@ -150,13 +150,12 @@
         // Hämta och visa inlägg
         async function fetchPosts(searchQuery = '') {
             try {
-                // Hämta posts, post_likes och comments
+                // Hämta posts och post_likes
                 const { data: posts, error: postsError } = await supabase
                     .from('posts')
                     .select(`
                         id, title, content, media_url, user_id, created_at,
-                        post_likes!post_likes_post_id_fkey(is_liked),
-                        comments!comments_post_id_fkey(id, content, user_id, created_at, comment_likes!comment_likes_comment_id_fkey(is_liked))
+                        post_likes!post_likes_post_id_fkey(is_liked)
                     `)
                     .order('created_at', { ascending: false })
                     .ilike('title', `%${searchQuery}%`);
@@ -166,11 +165,30 @@
                     return;
                 }
 
-                // Hämta usernames från Profiles för posts och comments
+                console.log('Hämtade posts:', posts);
+
+                // Hämta comments separat
+                const postIds = posts.map(post => post.id);
+                const { data: comments, error: commentsError } = await supabase
+                    .from('comments')
+                    .select(`
+                        id, post_id, user_id, content, created_at,
+                        comment_likes!comment_likes_comment_id_fkey(is_liked)
+                    `)
+                    .in('post_id', postIds);
+
+                if (commentsError) {
+                    console.error('Fel vid hämtning av kommentarer:', commentsError);
+                    return;
+                }
+
+                console.log('Hämtade comments:', comments);
+
+                // Hämta usernames från Profiles
                 const userIds = [
                     ...new Set([
                         ...posts.map(post => post.user_id),
-                        ...posts.flatMap(post => post.comments.map(comment => comment.user_id))
+                        ...comments.map(comment => comment.user_id)
                     ])
                 ];
 
@@ -184,7 +202,9 @@
                     return;
                 }
 
-                // Skapa en lookup för usernames
+                console.log('Hämtade profiles:', profiles);
+
+                // Skapa username-map
                 const usernameMap = profiles.reduce((map, profile) => {
                     map[profile.id] = profile.username;
                     return map;
@@ -194,13 +214,15 @@
                 allPosts = posts.map(post => ({
                     ...post,
                     username: usernameMap[post.user_id] || 'Okänd användare',
-                    comments: post.comments.map(comment => ({
-                        ...comment,
-                        username: usernameMap[comment.user_id] || 'Okänd användare'
-                    }))
+                    comments: comments
+                        .filter(comment => comment.post_id === post.id)
+                        .map(comment => ({
+                            ...comment,
+                            username: usernameMap[comment.user_id] || 'Okänd användare'
+                        }))
                 }));
 
-                console.log('Hämtade inlägg:', allPosts); // Loggning för felsökning
+                console.log('Kombinerade allPosts:', allPosts);
                 updatePostsDisplay();
             } catch (err) {
                 console.error('Oväntat fel vid hämtning av inlägg:', err);
