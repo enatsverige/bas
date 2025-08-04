@@ -49,6 +49,30 @@
         .hidden {
             display: none;
         }
+        .loading {
+            font-style: italic;
+            color: #ffffff;
+        }
+        .no-posts {
+            font-style: italic;
+            color: #ffffff;
+        }
+        .file-preview {
+            margin-top: 10px;
+            max-width: 200px;
+        }
+        .file-preview img, .file-preview video {
+            max-width: 100%;
+            border-radius: 5px;
+        }
+        .like-button.active {
+            background-color: #28a745;
+            color: #ffffff;
+        }
+        .dislike-button.active {
+            background-color: #dc3545;
+            color: #ffffff;
+        }
     </style>
 </head>
 <body>
@@ -66,7 +90,8 @@
         <div id="post-form" class="post-form hidden">
             <input type="text" id="post-title" placeholder="Titel">
             <textarea id="post-content" placeholder="Innehåll"></textarea>
-            <input type="text" id="post-media" placeholder="Media URL (valfritt)">
+            <input type="file" id="post-media" accept="image/*,video/*" capture="environment">
+            <div id="media-preview" class="file-preview"></div>
             <button onclick="createPost()">Publicera</button>
         </div>
 
@@ -114,6 +139,44 @@
             }
         }
 
+        // Förhandsvisning av fil
+        document.getElementById('post-media').addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            const preview = document.getElementById('media-preview');
+            preview.innerHTML = '';
+
+            if (!file) return;
+
+            // Validera filstorlek (max 10 MB)
+            const maxSize = 10 * 1024 * 1024; // 10 MB i bytes
+            if (file.size > maxSize) {
+                alert('Filen är för stor! Max 10 MB.');
+                event.target.value = '';
+                return;
+            }
+
+            // Validera filtyp
+            const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/webm'];
+            if (!allowedTypes.includes(file.type)) {
+                alert('Endast bilder (JPEG, PNG, WebP) och videor (MP4, WebM) är tillåtna.');
+                event.target.value = '';
+                return;
+            }
+
+            // Skapa förhandsvisning
+            const url = URL.createObjectURL(file);
+            if (file.type.startsWith('image/')) {
+                const img = document.createElement('img');
+                img.src = url;
+                preview.appendChild(img);
+            } else if (file.type.startsWith('video/')) {
+                const video = document.createElement('video');
+                video.src = url;
+                video.controls = true;
+                preview.appendChild(video);
+            }
+        });
+
         // Skapa nytt inlägg
         async function createPost() {
             const user = await checkAuth();
@@ -121,7 +184,9 @@
 
             const title = document.getElementById('post-title').value;
             const content = document.getElementById('post-content').value;
-            const mediaUrl = document.getElementById('post-media').value;
+            const fileInput = document.getElementById('post-media');
+            const file = fileInput.files[0];
+            let mediaUrl = '';
 
             if (!title || !content) {
                 alert('Titel och innehåll krävs!');
@@ -129,6 +194,30 @@
             }
 
             try {
+                document.getElementById('post-form').classList.add('loading');
+                document.getElementById('post-form').innerHTML += '<p class="loading">Laddar upp...</p>';
+
+                // Ladda upp fil till Supabase Storage om en fil valts
+                if (file) {
+                    const fileName = `${user.id}/${Date.now()}_${file.name}`;
+                    const { data, error: uploadError } = await supabase.storage
+                        .from('post-media')
+                        .upload(fileName, file);
+
+                    if (uploadError) {
+                        console.error('Fel vid filuppladdning:', uploadError);
+                        alert('Kunde inte ladda upp filen.');
+                        return;
+                    }
+
+                    // Hämta publik URL för filen
+                    const { data: urlData } = supabase.storage
+                        .from('post-media')
+                        .getPublicUrl(fileName);
+                    mediaUrl = urlData.publicUrl;
+                }
+
+                // Spara inlägget
                 const { error } = await supabase
                     .from('posts')
                     .insert([{ title, content, media_url: mediaUrl, user_id: user.id }]);
@@ -136,32 +225,41 @@
                 if (error) {
                     console.error('Fel vid publicering:', error);
                     alert('Kunde inte publicera inlägget.');
-                } else {
-                    document.getElementById('post-title').value = '';
-                    document.getElementById('post-content').value = '';
-                    document.getElementById('post-media').value = '';
-                    fetchPosts();
+                    return;
                 }
+
+                document.getElementById('post-title').value = '';
+                document.getElementById('post-content').value = '';
+                fileInput.value = '';
+                document.getElementById('media-preview').innerHTML = '';
+                fetchPosts();
             } catch (err) {
                 console.error('Oväntat fel vid publicering:', err);
+                alert('Ett oväntat fel uppstod.');
+            } finally {
+                document.getElementById('post-form').classList.remove('loading');
+                document.querySelector('.loading')?.remove();
             }
         }
 
         // Hämta och visa inlägg
         async function fetchPosts(searchQuery = '') {
             try {
+                document.getElementById('posts-container').innerHTML = '<p class="loading">Laddar inlägg...</p>';
+
                 // Hämta posts och post_likes
                 const { data: posts, error: postsError } = await supabase
                     .from('posts')
                     .select(`
                         id, title, content, media_url, user_id, created_at,
-                        post_likes!post_likes_post_id_fkey(is_liked)
+                        post_likes!post_likes_post_id_fkey(is_liked, user_id)
                     `)
                     .order('created_at', { ascending: false })
                     .ilike('title', `%${searchQuery}%`);
 
                 if (postsError) {
                     console.error('Fel vid hämtning av inlägg:', postsError);
+                    alert('Kunde inte hämta inlägg.');
                     return;
                 }
 
@@ -173,7 +271,7 @@
                     .from('comments')
                     .select(`
                         id, post_id, user_id, text, created_at,
-                        comment_likes!comment_likes_comment_id_fkey(is_liked)
+                        comment_likes!comment_likes_comment_id_fkey(is_liked, user_id)
                     `)
                     .in('post_id', postIds);
 
@@ -192,14 +290,19 @@
                     ])
                 ];
 
-                const { data: profiles, error: profilesError } = await supabase
-                    .from('Profiles')
-                    .select('id, username')
-                    .in('id', userIds);
+                let profiles = [];
+                if (userIds.length > 0) {
+                    const { data: profilesData, error: profilesError } = await supabase
+                        .from('Profiles')
+                        .select('id, username')
+                        .in('id', userIds);
 
-                if (profilesError) {
-                    console.error('Fel vid hämtning av profiler:', profilesError);
-                    return;
+                    if (profilesError) {
+                        console.error('Fel vid hämtning av profiler:', profilesError);
+                        alert('Kunde inte hämta profiler.');
+                        return;
+                    }
+                    profiles = profilesData;
                 }
 
                 console.log('Hämtade profiles:', profiles);
@@ -210,15 +313,22 @@
                     return map;
                 }, {});
 
+                // Hämta aktuell användare för att markera egna likes
+                const { data: { user } } = await supabase.auth.getUser();
+
                 // Kombinera data
                 allPosts = posts.map(post => ({
                     ...post,
                     username: usernameMap[post.user_id] || 'Okänd användare',
+                    userHasLiked: post.post_likes?.some(like => like.user_id === user?.id && like.is_liked),
+                    userHasDisliked: post.post_likes?.some(like => like.user_id === user?.id && !like.is_liked),
                     comments: (comments || [])
                         .filter(comment => comment.post_id === post.id)
                         .map(comment => ({
                             ...comment,
-                            username: usernameMap[comment.user_id] || 'Okänd användare'
+                            username: usernameMap[comment.user_id] || 'Okänd användare',
+                            userHasLiked: comment.comment_likes?.some(like => like.user_id === user?.id && like.is_liked),
+                            userHasDisliked: comment.comment_likes?.some(like => like.user_id === user?.id && !like.is_liked)
                         }))
                 }));
 
@@ -226,6 +336,9 @@
                 updatePostsDisplay();
             } catch (err) {
                 console.error('Oväntat fel vid hämtning av inlägg:', err);
+                alert('Ett oväntat fel uppstod vid hämtning av inlägg.');
+            } finally {
+                document.querySelector('.loading')?.remove();
             }
         }
 
@@ -235,6 +348,12 @@
             const toggleButton = document.getElementById('toggle-posts');
             displayedPosts = showAll ? allPosts : allPosts.slice(0, 5);
             
+            if (displayedPosts.length === 0) {
+                postsContainer.innerHTML = '<p class="no-posts">Inga inlägg hittades.</p>';
+                toggleButton.classList.add('hidden');
+                return;
+            }
+
             postsContainer.innerHTML = displayedPosts.map(post => {
                 const likes = post.post_likes ? post.post_likes.filter(like => like.is_liked).length : 0;
                 const dislikes = post.post_likes ? post.post_likes.length - likes : 0;
@@ -253,11 +372,13 @@
                     <div class="post">
                         <h2>${post.title}</h2>
                         <p>${post.content}</p>
-                        ${post.media_url ? `<img src="${post.media_url}" alt="Media" style="max-width: 100%;">` : ''}
+                        ${post.media_url ? (post.media_url.includes('.mp4') || post.media_url.includes('.webm') ? 
+                            `<video src="${post.media_url}" controls style="max-width: 100%;"></video>` : 
+                            `<img src="${post.media_url}" alt="Media" style="max-width: 100%;">`) : ''}
                         <p>Upplagt av: ${post.username} | ${new Date(post.created_at).toLocaleString()}</p>
                         <div class="post-actions">
-                            <button onclick="likePost('${post.id}', true)">Gilla (${likes})</button>
-                            <button onclick="likePost('${post.id}', false)">Ogilla (${dislikes})</button>
+                            <button class="like-button ${post.userHasLiked ? 'active' : ''}" onclick="likePost('${post.id}', true)">Gilla (${likes})</button>
+                            <button class="dislike-button ${post.userHasDisliked ? 'active' : ''}" onclick="likePost('${post.id}', false)">Ogilla (${dislikes})</button>
                         </div>
                         <div class="comments">
                             <h3>Kommentarer</h3>
@@ -266,8 +387,8 @@
                                     <p>${comment.text}</p>
                                     <p>Av: ${comment.username} | ${new Date(comment.created_at).toLocaleString()}</p>
                                     <div class="comment-actions">
-                                        <button onclick="likeComment('${comment.id}', true)">Gilla (${comment.likes})</button>
-                                        <button onclick="likeComment('${comment.id}', false)">Ogilla (${comment.dislikes})</button>
+                                        <button class="like-button ${comment.userHasLiked ? 'active' : ''}" onclick="likeComment('${comment.id}', true)">Gilla (${comment.likes})</button>
+                                        <button class="dislike-button ${comment.userHasDisliked ? 'active' : ''}" onclick="likeComment('${comment.id}', false)">Ogilla (${comment.dislikes})</button>
                                     </div>
                                 </div>
                             `).join('')}
@@ -278,8 +399,8 @@
                                         <p>${comment.text}</p>
                                         <p>Av: ${comment.username} | ${new Date(comment.created_at).toLocaleString()}</p>
                                         <div class="comment-actions">
-                                            <button onclick="likeComment('${comment.id}', true)">Gilla (${comment.comment_likes ? comment.comment_likes.filter(like => like.is_liked).length : 0})</button>
-                                            <button onclick="likeComment('${comment.id}', false)">Ogilla (${comment.comment_likes ? comment.comment_likes.length - comment.comment_likes.filter(like => like.is_liked).length : 0})</button>
+                                            <button class="like-button ${comment.userHasLiked ? 'active' : ''}" onclick="likeComment('${comment.id}', true)">Gilla (${comment.comment_likes ? comment.comment_likes.filter(like => like.is_liked).length : 0})</button>
+                                            <button class="dislike-button ${comment.userHasDisliked ? 'active' : ''}" onclick="likeComment('${comment.id}', false)">Ogilla (${comment.comment_likes ? comment.comment_likes.length - comment.comment_likes.filter(like => like.is_liked).length : 0})</button>
                                         </div>
                                     </div>
                                 `).join('') : ''}
@@ -292,6 +413,7 @@
             }).join('');
 
             toggleButton.textContent = showAll ? 'Visa färre' : 'Visa alla';
+            toggleButton.classList.toggle('hidden', allPosts.length <= 5);
         }
 
         // Växla mellan visa alla/färre inlägg
@@ -323,22 +445,39 @@
 
                 if (selectError) {
                     console.error('Fel vid hämtning av post_likes:', selectError);
+                    alert('Kunde inte hämta gillningar.');
                     return;
                 }
 
                 console.log('Hämtade existingLikes:', existingLikes);
 
                 if (existingLikes && existingLikes.length > 0) {
-                    // Uppdatera befintlig like
-                    const { error: updateError } = await supabase
-                        .from('post_likes')
-                        .update({ is_liked: isLiked })
-                        .eq('post_id', postId)
-                        .eq('user_id', user.id);
+                    if (existingLikes[0].is_liked === isLiked) {
+                        // Ta bort like om samma val görs igen
+                        const { error: deleteError } = await supabase
+                            .from('post_likes')
+                            .delete()
+                            .eq('post_id', postId)
+                            .eq('user_id', user.id);
 
-                    if (updateError) {
-                        console.error('Fel vid uppdatering av post_likes:', updateError);
-                        return;
+                        if (deleteError) {
+                            console.error('Fel vid borttagning av post_likes:', deleteError);
+                            alert('Kunde inte ta bort gillningen.');
+                            return;
+                        }
+                    } else {
+                        // Uppdatera befintlig like
+                        const { error: updateError } = await supabase
+                            .from('post_likes')
+                            .update({ is_liked: isLiked })
+                            .eq('post_id', postId)
+                            .eq('user_id', user.id);
+
+                        if (updateError) {
+                            console.error('Fel vid uppdatering av post_likes:', updateError);
+                            alert('Kunde inte uppdatera gillningen.');
+                            return;
+                        }
                     }
                 } else {
                     // Skapa ny like
@@ -348,6 +487,7 @@
 
                     if (insertError) {
                         console.error('Fel vid insättning av post_likes:', insertError);
+                        alert('Kunde inte lägga till gillningen.');
                         return;
                     }
                 }
@@ -355,6 +495,7 @@
                 fetchPosts();
             } catch (err) {
                 console.error('Oväntat fel vid gilla/ogilla inlägg:', err);
+                alert('Ett oväntat fel uppstod.');
             }
         }
 
@@ -378,6 +519,7 @@
                 fetchPosts();
             } catch (err) {
                 console.error('Fel vid kommentering:', err);
+                alert('Kunde inte lägga till kommentaren.');
             }
         }
 
@@ -396,29 +538,49 @@
 
                 if (selectError) {
                     console.error('Fel vid hämtning av comment_likes:', selectError);
+                    alert('Kunde inte hämta gillningar.');
                     return;
                 }
 
                 console.log('Hämtade existingLikes:', existingLikes);
 
                 if (existingLikes && existingLikes.length > 0) {
-                    const { error: updateError } = await supabase
-                        .from('comment_likes')
-                        .update({ is_liked: isLiked })
-                        .eq('comment_id', commentId)
-                        .eq('user_id', user.id);
+                    if (existingLikes[0].is_liked === isLiked) {
+                        // Ta bort like om samma val görs igen
+                        const { error: deleteError } = await supabase
+                            .from('comment_likes')
+                            .delete()
+                            .eq('comment_id', commentId)
+                            .eq('user_id', user.id);
 
-                    if (updateError) {
-                        console.error('Fel vid uppdatering av comment_likes:', updateError);
-                        return;
+                        if (deleteError) {
+                            console.error('Fel vid borttagning av comment_likes:', deleteError);
+                            alert('Kunde inte ta bort gillningen.');
+                            return;
+                        }
+                    } else {
+                        // Uppdatera befintlig like
+                        const { error: updateError } = await supabase
+                            .from('comment_likes')
+                            .update({ is_liked: isLiked })
+                            .eq('comment_id', commentId)
+                            .eq('user_id', user.id);
+
+                        if (updateError) {
+                            console.error('Fel vid uppdatering av comment_likes:', updateError);
+                            alert('Kunde inte uppdatera gillningen.');
+                            return;
+                        }
                     }
                 } else {
+                    // Skapa ny like
                     const { error: insertError } = await supabase
                         .from('comment_likes')
                         .insert([{ comment_id: commentId, user_id: user.id, is_liked: isLiked }]);
 
                     if (insertError) {
                         console.error('Fel vid insättning av comment_likes:', insertError);
+                        alert('Kunde inte lägga till gillningen.');
                         return;
                     }
                 }
@@ -426,6 +588,7 @@
                 fetchPosts();
             } catch (err) {
                 console.error('Fel vid gilla/ogilla kommentar:', err);
+                alert('Ett oväntat fel uppstod.');
             }
         }
 
