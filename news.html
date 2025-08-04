@@ -4,27 +4,32 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Nyheter</title>
-  <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js" defer></script>
   <script>
-    // Fallback till jsDelivr om unpkg misslyckas
     window.addEventListener('load', () => {
       if (!window.Supabase) {
         console.warn("unpkg CDN failed, trying jsDelivr fallback");
         const script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';
+        script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js';
         script.defer = true;
-        document.head.appendChild(script);
-
-        // Fallback till esm.sh om jsDelivr också misslyckas
-        script.onload = () => {
-          if (!window.Supabase) {
-            console.warn("jsDelivr CDN failed, trying esm.sh fallback");
-            const esmScript = document.createElement('script');
-            esmScript.src = 'https://esm.sh/@supabase/supabase-js@2/dist/umd/supabase.min.js';
-            esmScript.defer = true;
-            document.head.appendChild(esmScript);
-          }
+        script.onerror = () => {
+          console.warn("jsDelivr CDN failed, trying esm.sh fallback");
+          const esmScript = document.createElement('script');
+          esmScript.src = 'https://esm.sh/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js';
+          esmScript.defer = true;
+          esmScript.onerror = () => {
+            console.warn("esm.sh CDN failed, trying skypack.dev fallback");
+            const skypackScript = document.createElement('script');
+            skypackScript.src = 'https://cdn.skypack.dev/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js';
+            skypackScript.defer = true;
+            skypackScript.onerror = () => {
+              console.error("All CDNs failed (unpkg, jsDelivr, esm.sh, skypack.dev).");
+            };
+            document.head.appendChild(skypackScript);
+          };
+          document.head.appendChild(esmScript);
         };
+        document.head.appendChild(script);
       }
     });
   </script>
@@ -103,14 +108,14 @@
       // Timeout för att kontrollera om Supabase laddas
       setTimeout(() => {
         if (!window.Supabase) {
-          console.error("Supabase failed to load from all CDNs (unpkg, jsDelivr, esm.sh).");
+          console.error("Supabase failed to load from all CDNs (unpkg, jsDelivr, esm.sh, skypack.dev). Check network restrictions or CDN availability.");
           alert("Kunde inte ladda Supabase från någon CDN. Kontrollera din internetanslutning eller försök igen senare.");
         }
-      }, 5000); // Vänta 5 sekunder för att ge tid för alla fallbacks
+      }, 10000); // Vänta 10 sekunder för att ge tid för alla fallbacks
 
       // Kontrollera om Supabase är laddat
       if (typeof Supabase === 'undefined') {
-        console.error("Supabase is not defined yet. Waiting for CDN scripts to load.");
+        console.warn("Supabase is not defined yet. Waiting for CDN scripts to load.");
         return;
       }
       console.log("Supabase library loaded");
