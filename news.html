@@ -179,7 +179,7 @@
 
                 if (commentsError) {
                     console.error('Fel vid hämtning av kommentarer:', commentsError);
-                    // Fortsätt även om kommentarer saknas, eftersom tabellen kan vara tom
+                    // Fortsätt även om kommentarer saknas
                 }
 
                 console.log('Hämtade comments:', comments || []);
@@ -314,28 +314,47 @@
             if (!user) return;
 
             try {
-                const { data: existingLike } = await supabase
+                console.log('Försöker hämta post_likes för post_id:', postId, 'och user_id:', user.id);
+                const { data: existingLikes, error: selectError } = await supabase
                     .from('post_likes')
                     .select('*')
                     .eq('post_id', postId)
-                    .eq('user_id', user.id)
-                    .single();
+                    .eq('user_id', user.id);
 
-                if (existingLike) {
-                    await supabase
+                if (selectError) {
+                    console.error('Fel vid hämtning av post_likes:', selectError);
+                    return;
+                }
+
+                console.log('Hämtade existingLikes:', existingLikes);
+
+                if (existingLikes && existingLikes.length > 0) {
+                    // Uppdatera befintlig like
+                    const { error: updateError } = await supabase
                         .from('post_likes')
                         .update({ is_liked: isLiked })
                         .eq('post_id', postId)
                         .eq('user_id', user.id);
+
+                    if (updateError) {
+                        console.error('Fel vid uppdatering av post_likes:', updateError);
+                        return;
+                    }
                 } else {
-                    await supabase
+                    // Skapa ny like
+                    const { error: insertError } = await supabase
                         .from('post_likes')
                         .insert([{ post_id: postId, user_id: user.id, is_liked: isLiked }]);
+
+                    if (insertError) {
+                        console.error('Fel vid insättning av post_likes:', insertError);
+                        return;
+                    }
                 }
 
                 fetchPosts();
             } catch (err) {
-                console.error('Fel vid gilla/ogilla inlägg:', err);
+                console.error('Oväntat fel vid gilla/ogilla inlägg:', err);
             }
         }
 
@@ -368,23 +387,40 @@
             if (!user) return;
 
             try {
-                const { data: existingLike } = await supabase
+                console.log('Försöker hämta comment_likes för comment_id:', commentId, 'och user_id:', user.id);
+                const { data: existingLikes, error: selectError } = await supabase
                     .from('comment_likes')
                     .select('*')
                     .eq('comment_id', commentId)
-                    .eq('user_id', user.id)
-                    .single();
+                    .eq('user_id', user.id);
 
-                if (existingLike) {
-                    await supabase
+                if (selectError) {
+                    console.error('Fel vid hämtning av comment_likes:', selectError);
+                    return;
+                }
+
+                console.log('Hämtade existingLikes:', existingLikes);
+
+                if (existingLikes && existingLikes.length > 0) {
+                    const { error: updateError } = await supabase
                         .from('comment_likes')
                         .update({ is_liked: isLiked })
                         .eq('comment_id', commentId)
                         .eq('user_id', user.id);
+
+                    if (updateError) {
+                        console.error('Fel vid uppdatering av comment_likes:', updateError);
+                        return;
+                    }
                 } else {
-                    await supabase
+                    const { error: insertError } = await supabase
                         .from('comment_likes')
                         .insert([{ comment_id: commentId, user_id: user.id, is_liked: isLiked }]);
+
+                    if (insertError) {
+                        console.error('Fel vid insättning av comment_likes:', insertError);
+                        return;
+                    }
                 }
 
                 fetchPosts();
