@@ -4,16 +4,29 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Nyheter</title>
-  <script src="https://unpkg.com/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js" defer></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
   <script>
     // Fallback till jsDelivr om unpkg misslyckas
-    if (!window.Supabase) {
-      console.warn("unpkg CDN failed, trying jsDelivr fallback");
-      const script = document.createElement('script');
-      script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js';
-      script.defer = true;
-      document.head.appendChild(script);
-    }
+    window.addEventListener('load', () => {
+      if (!window.Supabase) {
+        console.warn("unpkg CDN failed, trying jsDelivr fallback");
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';
+        script.defer = true;
+        document.head.appendChild(script);
+
+        // Fallback till esm.sh om jsDelivr också misslyckas
+        script.onload = () => {
+          if (!window.Supabase) {
+            console.warn("jsDelivr CDN failed, trying esm.sh fallback");
+            const esmScript = document.createElement('script');
+            esmScript.src = 'https://esm.sh/@supabase/supabase-js@2/dist/umd/supabase.min.js';
+            esmScript.defer = true;
+            document.head.appendChild(esmScript);
+          }
+        };
+      }
+    });
   </script>
   <style>
     body {
@@ -87,10 +100,17 @@
       const commentsDisplayLimit = 3;
       let supabase = null;
 
+      // Timeout för att kontrollera om Supabase laddas
+      setTimeout(() => {
+        if (!window.Supabase) {
+          console.error("Supabase failed to load from all CDNs (unpkg, jsDelivr, esm.sh).");
+          alert("Kunde inte ladda Supabase från någon CDN. Kontrollera din internetanslutning eller försök igen senare.");
+        }
+      }, 5000); // Vänta 5 sekunder för att ge tid för alla fallbacks
+
       // Kontrollera om Supabase är laddat
       if (typeof Supabase === 'undefined') {
-        console.error("Supabase is not defined. Check if the CDN scripts (unpkg or jsDelivr) loaded correctly.");
-        alert("Kunde inte ladda Supabase. Kontrollera din internetanslutning eller försök igen senare.");
+        console.error("Supabase is not defined yet. Waiting for CDN scripts to load.");
         return;
       }
       console.log("Supabase library loaded");
@@ -110,7 +130,7 @@
           const { data: { user }, error } = await supabase.auth.getUser();
           if (error) {
             console.error("Error checking authentication:", error);
-            alert("Fel vid autentisering. Försök igen senare.");
+            alert("Fel vid autentisering: " + error.message);
             return;
           }
           if (!user) {
