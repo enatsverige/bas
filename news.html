@@ -1,450 +1,333 @@
 <!DOCTYPE html>
 <html lang="sv">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Nyheter</title>
-  <script src="https://unpkg.com/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js" defer></script>
-  <script>
-    window.addEventListener('load', () => {
-      if (!window.Supabase) {
-        console.warn("unpkg CDN failed, trying jsDelivr fallback");
-        const script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js';
-        script.defer = true;
-        script.onerror = () => {
-          console.warn("jsDelivr CDN failed, trying esm.sh fallback");
-          const esmScript = document.createElement('script');
-          esmScript.src = 'https://esm.sh/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js';
-          esmScript.defer = true;
-          esmScript.onerror = () => {
-            console.warn("esm.sh CDN failed, trying skypack.dev fallback");
-            const skypackScript = document.createElement('script');
-            skypackScript.src = 'https://cdn.skypack.dev/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js';
-            skypackScript.defer = true;
-            skypackScript.onerror = () => {
-              console.error("All CDNs failed (unpkg, jsDelivr, esm.sh, skypack.dev).");
-            };
-            document.head.appendChild(skypackScript);
-          };
-          document.head.appendChild(esmScript);
-        };
-        document.head.appendChild(script);
-      }
-    });
-  </script>
-  <style>
-    body {
-      background-color: #003578;
-      color: #ffc200;
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 20px;
-    }
-    .post-form, .post, .comment {
-      background-color: rgba(255, 255, 255, 0.1);
-      padding: 15px;
-      margin-bottom: 10px;
-      border-radius: 5px;
-    }
-    button {
-      background-color: #ffc200;
-      color: #003578;
-      border: none;
-      padding: 10px;
-      cursor: pointer;
-      margin: 5px;
-    }
-    input, textarea {
-      background-color: #fff;
-      color: #000;
-      border: none;
-      padding: 5px;
-      margin: 5px 0;
-      width: 100%;
-      box-sizing: border-box;
-    }
-    #post-form-container {
-      display: none;
-    }
-    .comment-section {
-      margin-top: 10px;
-    }
-    .comment-form {
-      display: flex;
-      gap: 10px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nyheter</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            background-color: #003578;
+            color: #ffc200;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .post-form, .post, .comment {
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+        }
+        input, textarea {
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 8px;
+            background-color: #ffffff;
+            color: #000000;
+            border: none;
+            border-radius: 3px;
+        }
+        button {
+            background-color: #ffc200;
+            color: #003578;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #e6a800;
+        }
+        .post-actions, .comment-actions {
+            margin-top: 10px;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
 </head>
 <body>
-  <h1>Nyheter</h1>
-  <button onclick="window.location.href='index.html'">Tillbaka till startsidan</button>
-  <div>
-    <input type="text" id="secret-code" placeholder="Ange hemlig kod för att posta">
-    <button onclick="checkCode()">Verifiera kod</button>
-  </div>
-  <div id="post-form-container">
-    <h2>Skapa nytt inlägg</h2>
-    <input type="text" id="post-title" placeholder="Titel">
-    <textarea id="post-content" placeholder="Innehåll"></textarea>
-    <input type="text" id="post-media" placeholder="Media-URL (valfritt)">
-    <button onclick="createPost()">Publicera</button>
-  </div>
-  <input type="text" id="search" placeholder="Sök inlägg...">
-  <div id="posts"></div>
-  <button id="toggle-posts" onclick="togglePosts()">Visa alla</button>
+    <div class="container">
+        <h1>Nyheter</h1>
+        <div id="auth-status"></div>
+        
+        <!-- Kodkontroll för att visa postformulär -->
+        <div id="code-check">
+            <input type="text" id="secret-code" placeholder="Ange hemlig kod">
+            <button onclick="checkCode()">Verifiera kod</button>
+        </div>
+        
+        <!-- Formulär för att skapa inlägg -->
+        <div id="post-form" class="post-form hidden">
+            <input type="text" id="post-title" placeholder="Titel">
+            <textarea id="post-content" placeholder="Innehåll"></textarea>
+            <input type="text" id="post-media" placeholder="Media URL (valfritt)">
+            <button onclick="createPost()">Publicera</button>
+        </div>
 
-  <script>
-    console.log("JavaScript loaded in news.html");
+        <!-- Sökfält -->
+        <input type="text" id="search-input" placeholder="Sök efter inlägg..." oninput="searchPosts()">
+        
+        <!-- Inläggslista -->
+        <div id="posts-container"></div>
+        <button id="toggle-posts" onclick="togglePosts()">Visa alla</button>
+    </div>
 
-    document.addEventListener('DOMContentLoaded', () => {
-      // Variabeldeklarationer
-      const SECRET_CODE = 'HHGffajkskksm13324..1!?';
-      let showAllPosts = false;
-      let currentUser = null;
-      const commentsDisplayLimit = 3;
-      let supabase = null;
+    <script>
+        // Supabase-konfiguration
+        const supabaseUrl = 'https://jtbcqgjkvzgcjobfbtad.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0YmNxZ2prdnpnY2pvYmZidGFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1MzU0NTksImV4cCI6MjA2OTExMTQ1OX0.ogacm-3bmQI7WDgHZSI2r6jDOrDAGMfI7QtG0avYMTQ';
+        const supabase = Supabase.createClient(supabaseUrl, supabaseKey);
+        
+        const SECRET_CODE = 'HHGffajkskksm13324..1!?';
+        let allPosts = [];
+        let displayedPosts = [];
+        let showAll = false;
 
-      // Timeout för att kontrollera om Supabase laddas
-      setTimeout(() => {
-        if (!window.Supabase) {
-          console.error("Supabase failed to load from all CDNs (unpkg, jsDelivr, esm.sh, skypack.dev). Check network restrictions or CDN availability.");
-          alert("Kunde inte ladda Supabase från någon CDN. Kontrollera din internetanslutning eller försök igen senare.");
+        // Kontrollera inloggning
+        async function checkAuth() {
+            const { data: { user } } = await supabase.auth.getUser();
+            const authStatus = document.getElementById('auth-status');
+            if (!user) {
+                authStatus.innerHTML = 'Du måste vara inloggad. <a href="index.html">Logga in</a>';
+                return false;
+            }
+            authStatus.innerHTML = `Inloggad som: ${user.email}`;
+            return user;
         }
-      }, 10000); // Vänta 10 sekunder för att ge tid för alla fallbacks
 
-      // Kontrollera om Supabase är laddat
-      if (typeof Supabase === 'undefined') {
-        console.warn("Supabase is not defined yet. Waiting for CDN scripts to load.");
-        return;
-      }
-      console.log("Supabase library loaded");
+        // Verifiera hemlig kod
+        function checkCode() {
+            const codeInput = document.getElementById('secret-code').value;
+            const postForm = document.getElementById('post-form');
+            if (codeInput === SECRET_CODE) {
+                postForm.classList.remove('hidden');
+                document.getElementById('code-check').classList.add('hidden');
+            } else {
+                alert('Felaktig kod!');
+            }
+        }
 
-      // Initiera Supabase-klienten
-      supabase = Supabase.createClient('https://jtbcqgjkvzgcjobfbtad.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0YmNxZ2prdnpnY2pvYmZidGFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1MzU0NTksImV4cCI6MjA2OTExMTQ1OX0.ogacm-3bmQI7WDgHZSI2r6jDOrDAGMfI7QtG0avYMTQ');
-      console.log("Supabase client initialized");
+        // Skapa nytt inlägg
+        async function createPost() {
+            const user = await checkAuth();
+            if (!user) return;
 
-      async function checkAuth() {
-        console.log("Checking authentication...");
-        if (!supabase) {
-          console.error("Supabase client not initialized");
-          alert("Supabase-klienten kunde inte initieras.");
-          return;
-        }
-        try {
-          const { data: { user }, error } = await supabase.auth.getUser();
-          if (error) {
-            console.error("Error checking authentication:", error);
-            alert("Fel vid autentisering: " + error.message);
-            return;
-          }
-          if (!user) {
-            console.log("No user found, redirecting to index.html");
-            window.location.href = 'index.html';
-          } else {
-            currentUser = user;
-            console.log("User authenticated:", user);
-            loadPosts();
-          }
-        } catch (err) {
-          console.error("Unexpected error during authentication:", err);
-          alert("Ett oväntat fel inträffade vid autentisering.");
-        }
-      }
+            const title = document.getElementById('post-title').value;
+            const content = document.getElementById('post-content').value;
+            const mediaUrl = document.getElementById('post-media').value;
 
-      async function checkCode() {
-        console.log("Checking secret code...");
-        const code = document.getElementById('secret-code').value;
-        if (code === SECRET_CODE) {
-          console.log("Correct code, showing post form");
-          document.getElementById('post-form-container').style.display = 'block';
-        } else {
-          console.log("Incorrect code");
-          alert('Fel kod!');
-        }
-      }
+            if (!title || !content) {
+                alert('Titel och innehåll krävs!');
+                return;
+            }
 
-      async function createPost() {
-        console.log("Creating new post...");
-        if (!supabase) {
-          console.error("Supabase client not initialized");
-          alert("Supabase-klienten kunde inte initieras.");
-          return;
-        }
-        const title = document.getElementById('post-title').value;
-        const content = document.getElementById('post-content').value;
-        const mediaUrl = document.getElementById('post-media').value;
-        if (!title || !content) {
-          console.log("Title or content missing");
-          alert('Titel och innehåll krävs!');
-          return;
-        }
-        try {
-          const { error } = await supabase.from('posts').insert({
-            title,
-            content,
-            media_url: mediaUrl,
-            user_id: currentUser.id,
-          });
-          if (error) {
-            console.error('Error creating post:', error);
-            alert("Fel vid skapande av inlägg: " + error.message);
-          } else {
-            console.log("Post created successfully");
-            loadPosts();
-            document.getElementById('post-title').value = '';
-            document.getElementById('post-content').value = '';
-            document.getElementById('post-media').value = '';
-          }
-        } catch (err) {
-          console.error("Unexpected error creating post:", err);
-          alert("Ett oväntat fel inträffade vid skapande av inlägg.");
-        }
-      }
+            const { error } = await supabase
+                .from('posts')
+                .insert([{ title, content, media_url: mediaUrl, user_id: user.id }]);
 
-      async function loadPosts() {
-        console.log("Loading posts...");
-        if (!supabase) {
-          console.error("Supabase client not initialized");
-          alert("Supabase-klienten kunde inte initieras.");
-          return;
+            if (error) {
+                console.error('Fel vid publicering:', error);
+                alert('Kunde inte publicera inlägget.');
+            } else {
+                document.getElementById('post-title').value = '';
+                document.getElementById('post-content').value = '';
+                document.getElementById('post-media').value = '';
+                fetchPosts();
+            }
         }
-        try {
-          const { data: posts, error } = await supabase
-            .from('posts')
-            .select(`
-              id, title, content, media_url, created_at, user_id,
-              Profiles (username),
-              post_likes (user_id, is_liked),
-              comments (id, content, created_at, user_id, Profiles (username), comment_likes (user_id, is_liked))
-            `)
-            .order('created_at', { ascending: false })
-            .limit(showAllPosts ? 1000 : 5);
-          if (error) {
-            console.error('Error loading posts:', error);
-            alert("Fel vid laddning av inlägg: " + error.message);
-            return;
-          }
-          console.log("Posts loaded:", posts);
-          const postsDiv = document.getElementById('posts');
-          postsDiv.innerHTML = '';
-          for (const post of posts) {
-            const likes = post.post_likes ? post.post_likes.filter(l => l.is_liked).length : 0;
-            const dislikes = post.post_likes ? post.post_likes.filter(l => !l.is_liked).length : 0;
-            const comments = post.comments
-              .sort((a, b) => {
-                const aLikes = a.comment_likes ? a.comment_likes.filter(l => l.is_liked).length : 0;
-                const bLikes = b.comment_likes ? b.comment_likes.filter(l => l.is_liked).length : 0;
-                return bLikes - aLikes;
-              });
-            const displayedComments = showAllPosts ? comments : comments.slice(0, commentsDisplayLimit);
-            const postDiv = document.createElement('div');
-            postDiv.className = 'post';
-            postDiv.innerHTML = `
-              <h3>${post.title}</h3>
-              <p>${post.content}</p>
-              ${post.media_url ? `<img src="${post.media_url}" alt="Media" style="max-width: 100%;">` : ''}
-              <p>Uppladdat: ${new Date(post.created_at).toLocaleString()}</p>
-              <p>Av: ${post.Profiles ? post.Profiles.username : 'Okänd användare'}</p>
-              <p>Gilla: ${likes} | Ogilla: ${dislikes}</p>
-              <button onclick="likePost('${post.id}', true)">Gilla</button>
-              <button onclick="likePost('${post.id}', false)">Ogilla</button>
-              <h4>Kommentarer:</h4>
-              <div id="comments-${post.id}" class="comment-section">
-                ${displayedComments.map(c => `
-                  <div class="comment">
-                    <p>${c.content}</p>
-                    <p>Av: ${c.Profiles ? c.Profiles.username : 'Okänd användare'} (${new Date(c.created_at).toLocaleString()})</p>
-                    <p>Gilla: ${c.comment_likes ? c.comment_likes.filter(l => l.is_liked).length : 0} | Ogilla: ${c.comment_likes ? c.comment_likes.filter(l => !l.is_liked).length : 0}</p>
-                    <button onclick="likeComment('${c.id}', true)">Gilla</button>
-                    <button onclick="likeComment('${c.id}', false)">Ogilla</button>
-                  </div>
-                `).join('')}
-              </div>
-              ${comments.length > commentsDisplayLimit ? `<button onclick="toggleComments('${post.id}', ${comments.length})">Visa ${showAllPosts ? 'färre' : 'fler'}</button>` : ''}
-              <div class="comment-form">
-                <input type="text" id="comment-${post.id}" placeholder="Skriv en kommentar">
-                <button onclick="addComment('${post.id}')">Kommentera</button>
-              </div>
-            `;
-            postsDiv.appendChild(postDiv);
-          }
-          document.getElementById('toggle-posts').textContent = showAllPosts ? 'Visa färre' : 'Visa alla';
-        } catch (err) {
-          console.error("Unexpected error loading posts:", err);
-          alert("Ett oväntat fel inträffade vid laddning av inlägg.");
-        }
-      }
 
-      async function likePost(postId, isLiked) {
-        console.log(`Liking post ${postId}, isLiked: ${isLiked}`);
-        if (!supabase) {
-          console.error("Supabase client not initialized");
-          alert("Supabase-klienten kunde inte initieras.");
-          return;
-        }
-        try {
-          const { error } = await supabase
-            .from('post_likes')
-            .upsert({ post_id: postId, user_id: currentUser.id, is_liked: isLiked });
-          if (error) {
-            console.error('Error liking post:', error);
-            alert("Fel vid gilla/ogilla inlägg: " + error.message);
-          } else {
-            console.log("Post like updated");
-            loadPosts();
-          }
-        } catch (err) {
-          console.error("Unexpected error liking post:", err);
-          alert("Ett oväntat fel inträffade vid gilla/ogilla inlägg.");
-        }
-      }
+        // Hämta och visa inlägg
+        async function fetchPosts(searchQuery = '') {
+            const { data: posts, error } = await supabase
+                .from('posts')
+                .select(`
+                    *,
+                    Profiles!posts_user_id_fkey(username),
+                    post_likes!post_likes_post_id_fkey(is_liked),
+                    comments!comments_post_id_fkey(
+                        *,
+                        Profiles!comments_user_id_fkey(username),
+                        comment_likes!comment_likes_comment_id_fkey(is_liked)
+                    )
+                `)
+                .order('created_at', { ascending: false })
+                .ilike('title', `%${searchQuery}%`);
 
-      async function addComment(postId) {
-        console.log(`Adding comment to post ${postId}`);
-        if (!supabase) {
-          console.error("Supabase client not initialized");
-          alert("Supabase-klienten kunde inte initieras.");
-          return;
-        }
-        const content = document.getElementById(`comment-${postId}`).value;
-        if (!content) {
-          console.log("Comment content missing");
-          alert('Skriv en kommentar!');
-          return;
-        }
-        try {
-          const { error } = await supabase
-            .from('comments')
-            .insert({ post_id: postId, user_id: currentUser.id, content });
-          if (error) {
-            console.error('Error adding comment:', error);
-            alert("Fel vid tillägg av kommentar: " + error.message);
-          } else {
-            console.log("Comment added successfully");
-            document.getElementById(`comment-${postId}`).value = '';
-            loadPosts();
-          }
-        } catch (err) {
-          console.error("Unexpected error adding comment:", err);
-          alert("Ett oväntat fel inträffade vid tillägg av kommentar.");
-        }
-      }
+            if (error) {
+                console.error('Fel vid hämtning av inlägg:', error);
+                return;
+            }
 
-      async function likeComment(commentId, isLiked) {
-        console.log(`Liking comment ${commentId}, isLiked: ${isLiked}`);
-        if (!supabase) {
-          console.error("Supabase client not initialized");
-          alert("Supabase-klienten kunde inte initieras.");
-          return;
+            allPosts = posts;
+            updatePostsDisplay();
         }
-        try {
-          const { error } = await supabase
-            .from('comment_likes')
-            .upsert({ comment_id: commentId, user_id: currentUser.id, is_liked: isLiked });
-          if (error) {
-            console.error('Error liking comment:', error);
-            alert("Fel vid gilla/ogilla kommentar: " + error.message);
-          } else {
-            console.log("Comment like updated");
-            loadPosts();
-          }
-        } catch (err) {
-          console.error("Unexpected error liking comment:", err);
-          alert("Ett oväntat fel inträffade vid gilla/ogilla kommentar.");
+
+        // Uppdatera visning av inlägg
+        function updatePostsDisplay() {
+            const postsContainer = document.getElementById('posts-container');
+            const toggleButton = document.getElementById('toggle-posts');
+            displayedPosts = showAll ? allPosts : allPosts.slice(0, 5);
+            
+            postsContainer.innerHTML = displayedPosts.map(post => {
+                const likes = post.post_likes.filter(like => like.is_liked).length;
+                const dislikes = post.post_likes.length - likes;
+                const topComments = post.comments
+                    .map(comment => ({
+                        ...comment,
+                        likes: comment.comment_likes.filter(like => like.is_liked).length,
+                        dislikes: comment.comment_likes.length - comment.comment_likes.filter(like => like.is_liked).length
+                    }))
+                    .sort((a, b) => b.likes - a.likes)
+                    .slice(0, 3);
+
+                return `
+                    <div class="post">
+                        <h2>${post.title}</h2>
+                        <p>${post.content}</p>
+                        ${post.media_url ? `<img src="${post.media_url}" alt="Media" style="max-width: 100%;">` : ''}
+                        <p>Upplagt av: ${post.Profiles.username} | ${new Date(post.created_at).toLocaleString()}</p>
+                        <div class="post-actions">
+                            <button onclick="likePost('${post.id}', true)">Gilla (${likes})</button>
+                            <button onclick="likePost('${post.id}', false)">Ogilla (${dislikes})</button>
+                        </div>
+                        <div class="comments">
+                            <h3>Kommentarer</h3>
+                            ${topComments.map(comment => `
+                                <div class="comment">
+                                    <p>${comment.content}</p>
+                                    <p>Av: ${comment.Profiles.username} | ${new Date(comment.created_at).toLocaleString()}</p>
+                                    <div class="comment-actions">
+                                        <button onclick="likeComment('${comment.id}', true)">Gilla (${comment.likes})</button>
+                                        <button onclick="likeComment('${comment.id}', false)">Ogilla (${comment.dislikes})</button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                            <button onclick="toggleComments('${post.id}')">${post.comments.length > 3 ? 'Visa fler' : ''}</button>
+                            <div id="all-comments-${post.id}" class="hidden">
+                                ${post.comments.map(comment => `
+                                    <div class="comment">
+                                        <p>${comment.content}</p>
+                                        <p>Av: ${comment.Profiles.username} | ${new Date(comment.created_at).toLocaleString()}</p>
+                                        <div class="comment-actions">
+                                            <button onclick="likeComment('${comment.id}', true)">Gilla (${comment.comment_likes.filter(like => like.is_liked).length})</button>
+                                            <button onclick="likeComment('${comment.id}', false)">Ogilla (${comment.comment_likes.length - comment.comment_likes.filter(like => like.is_liked).length})</button>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            <textarea id="comment-content-${post.id}" placeholder="Skriv en kommentar"></textarea>
+                            <button onclick="addComment('${post.id}')">Kommentera</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            toggleButton.textContent = showAll ? 'Visa färre' : 'Visa alla';
         }
-      }
 
-      async function togglePosts() {
-        console.log("Toggling posts display...");
-        showAllPosts = !showAllPosts;
-        loadPosts();
-      }
-
-      async function toggleComments(postId, commentCount) {
-        console.log(`Toggling comments for post ${postId}`);
-        showAllPosts = !showAllPosts;
-        loadPosts();
-      }
-
-      document.getElementById('search').addEventListener('input', async (e) => {
-        console.log("Searching posts...");
-        if (!supabase) {
-          console.error("Supabase client not initialized");
-          alert("Supabase-klienten kunde inte initieras.");
-          return;
+        // Växla mellan visa alla/färre inlägg
+        function togglePosts() {
+            showAll = !showAll;
+            updatePostsDisplay();
         }
-        try {
-          const query = e.target.value.toLowerCase();
-          const { data: posts, error } = await supabase
-            .from('posts')
-            .select(`
-              id, title, content, media_url, created_at, user_id,
-              Profiles (username),
-              post_likes (user_id, is_liked),
-              comments (id, content, created_at, user_id, Profiles (username), comment_likes (user_id, is_liked))
-            `)
-            .ilike('title', `%${query}%`)
-            .or(`content.ilike.%${query}%`)
-            .order('created_at', { ascending: false });
-          if (error) {
-            console.error('Error searching posts:', error);
-            alert("Fel vid sökning av inlägg: " + error.message);
-            return;
-          }
-          console.log("Search results:", posts);
-          const postsDiv = document.getElementById('posts');
-          postsDiv.innerHTML = '';
-          for (const post of posts) {
-            const likes = post.post_likes ? post.post_likes.filter(l => l.is_liked).length : 0;
-            const dislikes = post.post_likes ? post.post_likes.filter(l => !l.is_liked).length : 0;
-            const comments = post.comments
-              .sort((a, b) => {
-                const aLikes = a.comment_likes ? a.comment_likes.filter(l => l.is_liked).length : 0;
-                const bLikes = b.comment_likes ? b.comment_likes.filter(l => l.is_liked).length : 0;
-                return bLikes - aLikes;
-              });
-            const displayedComments = showAllPosts ? comments : comments.slice(0, commentsDisplayLimit);
-            const postDiv = document.createElement('div');
-            postDiv.className = 'post';
-            postDiv.innerHTML = `
-              <h3>${post.title}</h3>
-              <p>${post.content}</p>
-              ${post.media_url ? `<img src="${post.media_url}" alt="Media" style="max-width: 100%;">` : ''}
-              <p>Uppladdat: ${new Date(post.created_at).toLocaleString()}</p>
-              <p>Av: ${post.Profiles ? post.Profiles.username : 'Okänd användare'}</p>
-              <p>Gilla: ${likes} | Ogilla: ${dislikes}</p>
-              <button onclick="likePost('${post.id}', true)">Gilla</button>
-              <button onclick="likePost('${post.id}', false)">Ogilla</button>
-              <h4>Kommentarer:</h4>
-              <div id="comments-${post.id}" class="comment-section">
-                ${displayedComments.map(c => `
-                  <div class="comment">
-                    <p>${c.content}</p>
-                    <p>Av: ${c.Profiles ? c.Profiles.username : 'Okänd användare'} (${new Date(c.created_at).toLocaleString()})</p>
-                    <p>Gilla: ${c.comment_likes ? c.comment_likes.filter(l => l.is_liked).length : 0} | Ogilla: ${c.comment_likes ? c.comment_likes.filter(l => !l.is_liked).length : 0}</p>
-                    <button onclick="likeComment('${c.id}', true)">Gilla</button>
-                    <button onclick="likeComment('${c.id}', false)">Ogilla</button>
-                  </div>
-                `).join('')}
-              </div>
-              ${comments.length > commentsDisplayLimit ? `<button onclick="toggleComments('${post.id}', ${comments.length})">Visa ${showAllPosts ? 'färre' : 'fler'}</button>` : ''}
-              <div class="comment-form">
-                <input type="text" id="comment-${post.id}" placeholder="Skriv en kommentar">
-                <button onclick="addComment('${post.id}')">Kommentera</button>
-              </div>
-            `;
-            postsDiv.appendChild(postDiv);
-          }
-        } catch (err) {
-          console.error("Unexpected error searching posts:", err);
-          alert("Ett oväntat fel inträffade vid sökning av inlägg.");
-        }
-      });
 
-      // Starta autentisering
-      checkAuth();
-    });
-  </script>
+        // Växla kommentarer
+        function toggleComments(postId) {
+            const allCommentsDiv = document.getElementById(`all-comments-${postId}`);
+            const toggleButton = allCommentsDiv.previousElementSibling;
+            allCommentsDiv.classList.toggle('hidden');
+            toggleButton.textContent = allCommentsDiv.classList.contains('hidden') ? 'Visa fler' : 'Visa färre';
+        }
+
+        // Gilla/ogilla inlägg
+        async function likePost(postId, isLiked) {
+            const user = await checkAuth();
+            if (!user) return;
+
+            const { data: existingLike } = await supabase
+                .from('post_likes')
+                .select('*')
+                .eq('post_id', postId)
+                .eq('user_id', user.id)
+                .single();
+
+            if (existingLike) {
+                await supabase
+                    .from('post_likes')
+                    .update({ is_liked: isLiked })
+                    .eq('post_id', postId)
+                    .eq('user_id', user.id);
+            } else {
+                await supabase
+                    .from('post_likes')
+                    .insert([{ post_id: postId, user_id: user.id, is_liked: isLiked }]);
+            }
+
+            fetchPosts();
+        }
+
+        // Lägg till kommentar
+        async function addComment(postId) {
+            const user = await checkAuth();
+            if (!user) return;
+
+            const content = document.getElementById(`comment-content-${postId}`).value;
+            if (!content) {
+                alert('Kommentaren kan inte vara tom!');
+                return;
+            }
+
+            await supabase
+                .from('comments')
+                .insert([{ post_id: postId, user_id: user.id, content }]);
+
+            document.getElementById(`comment-content-${postId}`).value = '';
+            fetchPosts();
+        }
+
+        // Gilla/ogilla kommentar
+        async function likeComment(commentId, isLiked) {
+            const user = await checkAuth();
+            if (!user) return;
+
+            const { data: existingLike } = await supabase
+                .from('comment_likes')
+                .select('*')
+                .eq('comment_id', commentId)
+                .eq('user_id', user.id)
+                .single();
+
+            if (existingLike) {
+                await supabase
+                    .from('comment_likes')
+                    .update({ is_liked: isLiked })
+                    .eq('comment_id', commentId)
+                    .eq('user_id', user.id);
+            } else {
+                await supabase
+                    .from('comment_likes')
+                    .insert([{ comment_id: commentId, user_id: user.id, is_liked: isLiked }]);
+            }
+
+            fetchPosts();
+        }
+
+        // Sök inlägg
+        function searchPosts() {
+            const searchQuery = document.getElementById('search-input').value;
+            fetchPosts(searchQuery);
+        }
+
+        // Initial laddning
+        checkAuth().then(user => {
+            if (user) fetchPosts();
+        });
+    </script>
 </body>
 </html>
