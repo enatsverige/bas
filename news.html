@@ -208,22 +208,31 @@
 
                 // Kontrollera om bucket finns
                 const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
+                console.log('Buckets:', buckets, 'Bucket Error:', bucketError);
                 if (bucketError || !buckets.some(bucket => bucket.name === 'post-media')) {
                     console.error('Bucket-fel:', bucketError || 'Bucket post-media finns inte');
-                    alert('Kunde inte ladda upp filen: Storage-bucket post-media finns inte. Skapa bucketen i Supabase Dashboard.');
+                    alert('Kunde inte ladda upp filen: Storage-bucket post-media finns inte. Skapa bucketen i Supabase Dashboard under Storage -> New Bucket.');
                     return;
                 }
 
                 // Ladda upp fil till Supabase Storage om en fil valts
                 if (file) {
                     const fileName = `${user.id}/${Date.now()}_${file.name}`;
-                    const { data, error: uploadError } = await supabase.storage
+                    console.log('Försöker ladda upp fil:', fileName, 'Typ:', file.type, 'Storlek:', file.size);
+
+                    // Sätt en timeout för uppladdning (30 sekunder)
+                    const uploadPromise = supabase.storage
                         .from('post-media')
                         .upload(fileName, file);
+                    const timeoutPromise = new Promise((_, reject) => {
+                        setTimeout(() => reject(new Error('Uppladdningen tog för lång tid')), 30000);
+                    });
+
+                    const { data, error: uploadError } = await Promise.race([uploadPromise, timeoutPromise]);
 
                     if (uploadError) {
                         console.error('Fel vid filuppladdning:', uploadError);
-                        alert('Kunde inte ladda upp filen: ' + uploadError.message);
+                        alert(`Kunde inte ladda upp filen: ${uploadError.message}. Kontrollera att bucketen post-media är publik och att RLS-policyerna är korrekta.`);
                         return;
                     }
 
@@ -233,6 +242,20 @@
                         .getPublicUrl(fileName);
                     mediaUrl = urlData.publicUrl;
                     console.log('Uppladdad fil-URL:', mediaUrl);
+
+                    // Verifiera att URL:en är giltig
+                    try {
+                        const response = await fetch(mediaUrl, { method: 'HEAD' });
+                        if (!response.ok) {
+                            console.error('Ogiltig media-URL:', mediaUrl, 'Status:', response.status);
+                            alert('Filen laddades upp, men URL:en är inte tillgänglig. Kontrollera att bucketen är publik.');
+                            return;
+                        }
+                    } catch (urlError) {
+                        console.error('Fel vid verifiering av media-URL:', urlError);
+                        alert('Filen laddades upp, men URL:en kunde inte verifieras.');
+                        return;
+                    }
                 }
 
                 // Spara inlägget
