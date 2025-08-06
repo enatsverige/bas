@@ -92,6 +92,7 @@
             <textarea id="post-content" placeholder="Innehåll"></textarea>
             <input type="file" id="post-media" accept="image/*,video/*" capture="environment">
             <div id="media-preview" class="file-preview"></div>
+            <button onclick="clearPreview()">Rensa förhandsvisning</button>
             <button onclick="createPost()">Publicera</button>
         </div>
 
@@ -137,6 +138,14 @@
             } else {
                 alert('Felaktig kod!');
             }
+        }
+
+        // Rensa förhandsvisning
+        function clearPreview() {
+            const fileInput = document.getElementById('post-media');
+            const preview = document.getElementById('media-preview');
+            fileInput.value = '';
+            preview.innerHTML = '';
         }
 
         // Förhandsvisning av fil
@@ -197,6 +206,14 @@
                 document.getElementById('post-form').classList.add('loading');
                 document.getElementById('post-form').innerHTML += '<p class="loading">Laddar upp...</p>';
 
+                // Kontrollera om bucket finns
+                const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
+                if (bucketError || !buckets.some(bucket => bucket.name === 'post-media')) {
+                    console.error('Bucket-fel:', bucketError || 'Bucket post-media finns inte');
+                    alert('Kunde inte ladda upp filen: Storage-bucket post-media finns inte. Skapa bucketen i Supabase Dashboard.');
+                    return;
+                }
+
                 // Ladda upp fil till Supabase Storage om en fil valts
                 if (file) {
                     const fileName = `${user.id}/${Date.now()}_${file.name}`;
@@ -206,7 +223,7 @@
 
                     if (uploadError) {
                         console.error('Fel vid filuppladdning:', uploadError);
-                        alert('Kunde inte ladda upp filen.');
+                        alert('Kunde inte ladda upp filen: ' + uploadError.message);
                         return;
                     }
 
@@ -215,6 +232,7 @@
                         .from('post-media')
                         .getPublicUrl(fileName);
                     mediaUrl = urlData.publicUrl;
+                    console.log('Uppladdad fil-URL:', mediaUrl);
                 }
 
                 // Spara inlägget
@@ -224,7 +242,7 @@
 
                 if (error) {
                     console.error('Fel vid publicering:', error);
-                    alert('Kunde inte publicera inlägget.');
+                    alert('Kunde inte publicera inlägget: ' + error.message);
                     return;
                 }
 
@@ -235,7 +253,7 @@
                 fetchPosts();
             } catch (err) {
                 console.error('Oväntat fel vid publicering:', err);
-                alert('Ett oväntat fel uppstod.');
+                alert('Ett oväntat fel uppstod: ' + err.message);
             } finally {
                 document.getElementById('post-form').classList.remove('loading');
                 document.querySelector('.loading')?.remove();
@@ -259,7 +277,7 @@
 
                 if (postsError) {
                     console.error('Fel vid hämtning av inlägg:', postsError);
-                    alert('Kunde inte hämta inlägg.');
+                    alert('Kunde inte hämta inlägg: ' + postsError.message);
                     return;
                 }
 
@@ -299,7 +317,7 @@
 
                     if (profilesError) {
                         console.error('Fel vid hämtning av profiler:', profilesError);
-                        alert('Kunde inte hämta profiler.');
+                        alert('Kunde inte hämta profiler: ' + profilesError.message);
                         return;
                     }
                     profiles = profilesData;
@@ -336,7 +354,7 @@
                 updatePostsDisplay();
             } catch (err) {
                 console.error('Oväntat fel vid hämtning av inlägg:', err);
-                alert('Ett oväntat fel uppstod vid hämtning av inlägg.');
+                alert('Ett oväntat fel uppstod vid hämtning av inlägg: ' + err.message);
             } finally {
                 document.querySelector('.loading')?.remove();
             }
@@ -445,7 +463,7 @@
 
                 if (selectError) {
                     console.error('Fel vid hämtning av post_likes:', selectError);
-                    alert('Kunde inte hämta gillningar.');
+                    alert('Kunde inte hämta gillningar: ' + selectError.message);
                     return;
                 }
 
@@ -462,7 +480,7 @@
 
                         if (deleteError) {
                             console.error('Fel vid borttagning av post_likes:', deleteError);
-                            alert('Kunde inte ta bort gillningen.');
+                            alert('Kunde inte ta bort gillningen: ' + deleteError.message);
                             return;
                         }
                     } else {
@@ -475,7 +493,7 @@
 
                         if (updateError) {
                             console.error('Fel vid uppdatering av post_likes:', updateError);
-                            alert('Kunde inte uppdatera gillningen.');
+                            alert('Kunde inte uppdatera gillningen: ' + updateError.message);
                             return;
                         }
                     }
@@ -487,7 +505,7 @@
 
                     if (insertError) {
                         console.error('Fel vid insättning av post_likes:', insertError);
-                        alert('Kunde inte lägga till gillningen.');
+                        alert('Kunde inte lägga till gillningen: ' + insertError.message);
                         return;
                     }
                 }
@@ -495,7 +513,7 @@
                 fetchPosts();
             } catch (err) {
                 console.error('Oväntat fel vid gilla/ogilla inlägg:', err);
-                alert('Ett oväntat fel uppstod.');
+                alert('Ett oväntat fel uppstod: ' + err.message);
             }
         }
 
@@ -519,7 +537,7 @@
                 fetchPosts();
             } catch (err) {
                 console.error('Fel vid kommentering:', err);
-                alert('Kunde inte lägga till kommentaren.');
+                alert('Kunde inte lägga till kommentaren: ' + err.message);
             }
         }
 
@@ -538,7 +556,7 @@
 
                 if (selectError) {
                     console.error('Fel vid hämtning av comment_likes:', selectError);
-                    alert('Kunde inte hämta gillningar.');
+                    alert('Kunde inte hämta gillningar: ' + selectError.message);
                     return;
                 }
 
@@ -555,7 +573,7 @@
 
                         if (deleteError) {
                             console.error('Fel vid borttagning av comment_likes:', deleteError);
-                            alert('Kunde inte ta bort gillningen.');
+                            alert('Kunde inte ta bort gillningen: ' + deleteError.message);
                             return;
                         }
                     } else {
@@ -568,7 +586,7 @@
 
                         if (updateError) {
                             console.error('Fel vid uppdatering av comment_likes:', updateError);
-                            alert('Kunde inte uppdatera gillningen.');
+                            alert('Kunde inte uppdatera gillningen: ' + updateError.message);
                             return;
                         }
                     }
@@ -580,7 +598,7 @@
 
                     if (insertError) {
                         console.error('Fel vid insättning av comment_likes:', insertError);
-                        alert('Kunde inte lägga till gillningen.');
+                        alert('Kunde inte lägga till gillningen: ' + insertError.message);
                         return;
                     }
                 }
@@ -588,7 +606,7 @@
                 fetchPosts();
             } catch (err) {
                 console.error('Fel vid gilla/ogilla kommentar:', err);
-                alert('Ett oväntat fel uppstod.');
+                alert('Ett oväntat fel uppstod: ' + err.message);
             }
         }
 
