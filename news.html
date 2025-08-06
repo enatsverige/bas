@@ -206,14 +206,8 @@
                 document.getElementById('post-form').classList.add('loading');
                 document.getElementById('post-form').innerHTML += '<p class="loading">Laddar upp...</p>';
 
-                // Kontrollera om bucket finns
-                const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
-                console.log('Buckets:', buckets, 'Bucket Error:', bucketError);
-                if (bucketError || !buckets.some(bucket => bucket.name === 'post-media')) {
-                    console.error('Bucket-fel:', bucketError || 'Bucket post-media finns inte');
-                    alert('Kunde inte ladda upp filen: Storage-bucket post-media finns inte. Skapa bucketen i Supabase Dashboard under Storage -> New Bucket.');
-                    return;
-                }
+                // Hoppa över listBuckets() eftersom det är opålitligt, anta att post-media finns
+console.log('Skipping bucket list check, assuming post-media exists based on manual upload success');
 
                 // Ladda upp fil till Supabase Storage om en fil valts
                 if (file) {
