@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>0</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #121212;
+      color: white;
+      text-align: center;
+      padding: 20px;
+    }
+    button {
+      background-color: #00e676;
+      color: black;
+      border: none;
+      padding: 12px 24px;
+      font-size: 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    button:hover {
+      background-color: #00c853;
+    }
+    table {
+      width: 80%;
+      border-collapse: collapse;
+      margin: 20px auto;
+      display: none; /* hidden until button is clicked */
+    }
+    th, td {
+      border: 1px solid #333;
+      padding: 12px;
+      text-align: center;
+    }
+    th {
+      background-color: #1f1f1f;
+    }
+    .check {
+      color: #00e676; /* green */
+      font-weight: bold;
+      font-size: 1.3em;
+    }
+    .cross {
+      color: #ff5252; /* red */
+      font-weight: bold;
+      font-size: 1.3em;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Welcome to Our Organization</h1>
+  <p>We provide benefits that others don’t.</p>
+
+  <!-- Button -->
+  <button onclick="toggleTable()">See Comparison Chart</button>
+
+  <!-- Comparison Chart -->
+  <table id="comparisonTable">
+    <tr>
+      <th>Feature</th>
+      <th>Normal</th>
+      <th>Our Organization</th>
+    </tr>
+    <tr>
+      <td>Private by default</td>
+      <td class="cross">✗</td>
+      <td class="check">✓</td>
+    </tr>
+    <tr>
+      <td>No targeted ads</td>
+      <td class="cross">✗</td>
+      <td class="check">✓</td>
+    </tr>
+    <tr>
+      <td>Secure account system</td>
+      <td class="cross">✗</td>
+      <td class="check">✓</td>
+    </tr>
+    <tr>
+      <td>Custom features</td>
+      <td class="cross">✗</td>
+      <td class="check">✓</td>
+    </tr>
+  </table>
+
+  <script>
+    function toggleTable() {
+      const table = document.getElementById("comparisonTable");
+      if (table.style.display === "none") {
+        table.style.display = "table";
+      } else {
+        table.style.display = "none";
+      }
+    }
+  </script>
+
+</body>
+</html>
