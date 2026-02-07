@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="sv">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Användare - Enat Sverige</title>
+  <link rel="icon" type="image/x-icon" href="enat-sverige-logga.ico">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      background-color: #003578;
+      color: #ffc200;
+      margin: 0;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    h1,
+    h2 {
+      margin-bottom: 1.5rem;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #004a99;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      margin-top: 1.5rem;
+    }
+
+    th,
+    td {
+      padding: 14px 16px;
+      text-align: left;
+      border-bottom: 1px solid #336bb8;
+    }
+
+    th {
+      background: #336bb8;
+      color: white;
+    }
+
+    tr:hover {
+      background: #0050a8;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .back-btn {
+      padding: 10px 20px;
+      background: #336bb8;
+      color: white;
+      border-radius: 25px;
+      text-decoration: none;
+      font-size: 1.1rem;
+    }
+
+    .count {
+      font-size: 1.2rem;
+      font-weight: bold;
+    }
+
+    .generate-section {
+      margin: 3rem 0;
+    }
+
+    .generate-btn {
+      padding: 12px 24px;
+      background: #336bb8;
+      color: white;
+      border: none;
+      border-radius: 25px;
+      font-size: 1.1rem;
+      cursor: pointer;
+    }
+
+    #new-code {
+      margin-top: 1.5rem;
+      font-size: 1.4rem;
+      font-weight: bold;
+      display: none;
+    }
+
+    footer {
+      margin-top: 4rem;
+      font-size: 0.95rem;
+    }
+
+    #content {
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="auth-message">Kontrollerar behörighet...</div>
+  <div id="content" class="container">
+    <div class="header">
+      <h1>Registrerade användare</h1>
+      <a href="index.html" class="back-btn">← Tillbaka</a>
+    </div>
+    <div id="user-count" class="count">Laddar...</div>
+    <!-- USERS TABLE -->
+    <table>
+      <thead>
+        <tr>
+          <th>Användarnamn</th>
+          <th>Förnamn</th>
+          <th>Hur hittade du oss?</th>
+          <th>Invitationskod</th>
+        </tr>
+      </thead>
+      <tbody id="users-body"></tbody>
+    </table>
+    <!-- GENERATE -->
+    <div class="generate-section">
+      <button id="generate-code-btn" class="generate-btn">
+        Generera ny invitationskod
+      </button>
+      <div id="new-code"></div>
+    </div>
+    <!-- INVITATION CODES -->
+    <h2 style="margin-top:3rem;">Aktiva invitationskoder</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Kod</th>
+          <th>Skapad</th>
+          <th>Åtgärd</th>
+        </tr>
+      </thead>
+      <tbody id="codes-body"></tbody>
+    </table>
+  </div>
+  <footer>©
+    <script>document.write(new Date().getFullYear())</script> Enat Sverige
+  </footer>
+  <script type="module">
+    const supabase = window.supabase.createClient(
+      'https://jtbcqgjkvzgcjobfbtad.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0YmNxZ2prdnpnY2pvYmZidGFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1MzU0NTksImV4cCI6MjA2OTExMTQ1OX0.ogacm-3bmQI7WDgHZSI2r6jDOrDAGMfI7QtG0avYMTQ'
+    );
+    const allowedEmail = 'ninjafjanten1@gmail.com';
+    function escapeHtml(text) {
+      return (text || '')
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+    async function checkAccessAndLoad() {
+      const authMessage = document.getElementById('auth-message');
+      const content = document.getElementById('content');
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        authMessage.innerHTML = 'Du måste logga in.';
+        return;
+      }
+      if (user.email !== allowedEmail) {
+        authMessage.innerHTML = 'Åtkomst nekad.';
+        return;
+      }
+      authMessage.style.display = 'none';
+      content.style.display = 'block';
+      loadUsers();
+      loadInvitationCodes();
+    }
+    async function loadUsers() {
+      const tbody = document.getElementById('users-body');
+      const countEl = document.getElementById('user-count');
+      tbody.innerHTML = '';
+      const { data } = await supabase
+        .from('Profiles')
+        .select('username, firstname, referral, verification_code')
+        .order('username');
+      countEl.textContent = `Totalt ${data.length} användare`;
+      data.forEach(u => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+        <td>${escapeHtml(u.username)}</td>
+        <td>${escapeHtml(u.firstname)}</td>
+        <td>${escapeHtml(u.referral)}</td>
+        <td>${escapeHtml(u.verification_code)}</td>
+      `;
+        tbody.appendChild(tr);
+      });
+    }
+    async function loadInvitationCodes() {
+      const tbody = document.getElementById('codes-body');
+      tbody.innerHTML = '';
+      const { data } = await supabase
+        .from('Invitation_code')
+        .select('id, code, created_at')
+        .order('created_at', { ascending: false });
+      data.forEach(c => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+      <td>${escapeHtml(c.code)}</td>
+      <td>${new Date(c.created_at).toLocaleString()}</td>
+      <td>
+        <button
+          style="
+            padding:6px 14px;
+            background:#ff4d4d;
+            border:none;
+            color:white;
+            border-radius:15px;
+            cursor:pointer;
+          "
+        >
+          Remove
+        </button>
+      </td>
+    `;
+        const btn = tr.querySelector('button');
+        btn.addEventListener('click', async () => {
+          if (!confirm(`Är du säker att ta bort kod ${c.code}?`)) return;
+          await supabase
+            .from('Invitation_code')
+            .delete()
+            .eq('id', c.id);
+          loadInvitationCodes(); // refresh table
+        });
+        tbody.appendChild(tr);
+      });
+    }
+    document.getElementById('generate-code-btn')
+      .addEventListener('click', async () => {
+        const code = String(Math.floor(100000 + Math.random() * 900000));
+        await supabase.from('Invitation_code').insert([{ code }]);
+        document.getElementById('new-code').textContent = `Ny kod: ${code}`;
+        document.getElementById('new-code').style.display = 'block';
+        loadInvitationCodes();
+      });
+    checkAccessAndLoad();
+  </script>
+</body>
+
+</html>
