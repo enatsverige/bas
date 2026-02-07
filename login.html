@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="sv">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Enat Sverige</title>
+  <link rel="icon" type="image/x-icon" href="enat-sverige-logga.ico">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      background-color: #003578;
+      color: #ffc200;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+    }
+
+    h2 {
+      font-size: 1.2rem;
+    }
+
+    form {
+      margin: 1rem auto;
+      background: #004a99;
+      padding: 1rem;
+      border-radius: 8px;
+      max-width: 400px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    }
+
+    label {
+      display: block;
+      text-align: left;
+      margin-top: 1rem;
+      font-weight: bold;
+    }
+
+    input,
+    select {
+      width: calc(100% - 10px);
+      padding: 0.5rem;
+      margin-top: 0.25rem;
+      background-color: #ffc200;
+      color: #003578;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      margin-top: 1rem;
+      padding: 10px 20px;
+      font-size: 1rem;
+      border: none;
+      background-color: #336bb8;
+      color: white;
+      border-radius: 25px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #417fd1;
+    }
+
+    #message {
+      margin-top: 2rem;
+      font-size: 1.4rem;
+      font-weight: bold;
+    }
+
+    img {
+      max-width: 200px;
+      margin-bottom: 1rem;
+    }
+
+    .link {
+      font-size: 0.9rem;
+      color: #ffc200;
+      cursor: pointer;
+      text-decoration: underline;
+      margin-top: 0.5rem;
+    }
+
+    .login {
+      margin-top: 1rem;
+      padding: 10px 20px;
+      font-size: 1rem;
+      border: none;
+      background-color: #336bb8;
+      color: white;
+      border-radius: 25px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+  <a href="index.html" class="login" style="color: #ffc200; text-decoration: none; font-size: 1.2rem;">
+    Home
+  </a>
+  <div>
+    <a href="admin.html" id="admin-btn" style="
+     display:none;
+     margin-top:20px;
+     padding:12px 24px;
+     background:#ff7a00;
+     color:#003578;
+     font-weight:bold;
+     border-radius:25px;
+     text-decoration:none;
+   ">
+      ⚙️ Adminpanel
+    </a>
+  </div>
+  <div id="active-users"
+    style="padding: 1rem; background: #003578; color: #ffc200; font-weight: bold; text-align: center;">
+    Laddar antal aktiva användare...
+  </div>
+  <form id="register-form">
+    <h2>Registrera</h2>
+    <label>Email</label>
+    <input type="email" id="reg-email" required />
+    <label>Lösenord</label>
+    <input type="password" id="reg-password" required />
+    <label>Användarnamn</label>
+    <input type="text" id="username" required />
+    <label>Förnamn</label>
+    <input type="text" id="firstname" required />
+    <label>Invitationskod</label>
+    <input type="text" id="invitation-code" required placeholder="6-siffrig kod" maxlength="6" />
+    <label>Hur fick du reda på oss?</label>
+    <select id="referral">
+      <option value="">Välj ett alternativ</option>
+      <option>Sociala Medier</option>
+      <option>Telegram</option>
+      <option>Kompis/Familj</option>
+      <option>Annat</option>
+    </select>
+    <button type="submit">Registrera</button>
+  </form>
+  <form id="login-form">
+    <h2>Logga in</h2>
+    <label>Email</label>
+    <input type="email" id="login-email" required />
+    <label>Lösenord</label>
+    <input type="password" id="login-password" required />
+    <button type="submit">Logga in</button>
+    <div class="link" onclick="forgotPassword()">Glömt lösenord?</div>
+  </form>
+  <div id="message" style="display:none;"></div>
+  <form id="update-form" style="display:none;">
+    <h2>Uppdatera din information</h2>
+    <label>Ny email</label>
+    <input type="email" id="new-email" />
+    <label>Nytt användarnamn</label>
+    <input type="text" id="new-username" />
+    <button type="submit">Uppdatera</button>
+  </form>
+  <script type="module">
+    const supabase = window.supabase.createClient(
+      'https://jtbcqgjkvzgcjobfbtad.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0YmNxZ2prdnpnY2pvYmZidGFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1MzU0NTksImV4cCI6MjA2OTExMTQ1OX0.ogacm-3bmQI7WDgHZSI2r6jDOrDAGMfI7QtG0avYMTQ'
+    );
+    async function updateActiveUsersCount() {
+      const { data, error } = await supabase.from('Profiles').select('id');
+      const el = document.getElementById('active-users');
+      el.textContent = error ? 'Kunde inte hämta aktiva användare' : `Aktiva användare: ${data.length}`;
+    }
+    updateActiveUsersCount();
+    const registerForm = document.getElementById('register-form');
+    const loginForm = document.getElementById('login-form');
+    const updateForm = document.getElementById('update-form');
+    const messageBox = document.getElementById('message');
+    registerForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('reg-email').value.trim();
+      const password = document.getElementById('reg-password').value;
+      const username = document.getElementById('username').value.trim();
+      const firstname = document.getElementById('firstname').value.trim();
+      const invitationCode = document.getElementById('invitation-code').value.trim();
+      const referral = document.getElementById('referral').value;
+      if (!/^\d{6}$/.test(invitationCode)) {
+        alert("Ange en giltig 6-siffrig invitationskod.");
+        return;
+      }
+      const { data: invite, error: inviteErr } = await supabase
+        .from('Invitation_code')
+        .select('id')
+        .eq('code', invitationCode)
+        .single();
+      if (inviteErr || !invite) {
+        alert('Ogiltig eller redan använd invitationskod.');
+        return;
+      }
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo: window.location.href }
+      });
+      if (signUpError || !signUpData.user) {
+        alert('Fel vid registrering: ' + (signUpError?.message || 'Okänt fel'));
+        return;
+      }
+      const userId = signUpData.user.id;
+      const { error: insertErr } = await supabase.from('Profiles').insert([{
+        id: userId,
+        username,
+        firstname,
+        referral,
+        verification_code: invitationCode
+      }]);
+      if (insertErr) {
+        alert('Kunde inte skapa profil: ' + insertErr.message);
+        return;
+      }
+      await supabase.from('Invitation_code').delete().eq('id', invite.id);
+      alert('Konto skapat!');
+      registerForm.style.display = 'none';
+      loginForm.style.display = 'none';
+      updateForm.style.display = 'block';
+      showWelcome(userId, firstname, false);
+      updateActiveUsersCount();
+    });
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error || !data.user) {
+        alert('Fel vid inloggning: ' + (error?.message || 'Fel email/lösenord'));
+        return;
+      }
+      const userId = data.user.id;
+      const { data: profile, error: pErr } = await supabase
+        .from('Profiles')
+        .select('firstname')
+        .eq('id', userId)
+        .single();
+      if (pErr || !profile) {
+        alert('Kunde inte hämta profil.');
+        return;
+      }
+      loginForm.style.display = 'none';
+      registerForm.style.display = 'none';
+      updateForm.style.display = 'block';
+      showWelcome(userId, profile.firstname || 'Okänd', true);
+    });
+    function showWelcome(userId, firstname, isReturning) {
+      messageBox.style.display = 'block';
+      supabase.auth.getUser().then(({ data }) => {
+        const createdAt = new Date(data.user.created_at);
+        messageBox.innerHTML = `
+          <div>${isReturning ? 'Välkommen tillbaka' : 'Välkommen'}, <strong>${firstname}</strong>!</div>
+          <div>Konto skapades: ${createdAt.toLocaleString()}</div>
+          <div>Tid sedan skapande: <span id="timer"></span></div>
+          <br><a href="users.html" style="color:#ffc200;text-decoration:underline;">Se alla användare</a>
+          <div style="margin: 20px 0;">
+            <a href="news.html"><button style="padding:10px 20px; font-size:16px;">Nyheter / Viktig info</button></a>
+          </div>
+        `;
+        const start = createdAt;
+        setInterval(() => {
+          const diff = Date.now() - start;
+          const s = Math.floor(diff / 1000) % 60;
+          const m = Math.floor(diff / 60000) % 60;
+          const h = Math.floor(diff / 3600000);
+          document.getElementById('timer').textContent = `${h}h ${m}m ${s}s`;
+        }, 1000);
+      });
+    }
+    updateForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const newEmail = document.getElementById('new-email').value.trim();
+      const newUsername = document.getElementById('new-username').value.trim();
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error || !user) return alert('Kunde inte hämta användare');
+      if (newEmail) await supabase.auth.updateUser({ email: newEmail });
+      if (newUsername) await supabase.from('Profiles').update({ username: newUsername }).eq('id', user.id);
+      alert('Uppdaterat!');
+    });
+    function forgotPassword() {
+      const email = prompt("Ange din email:");
+      if (!email) return;
+      supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.href })
+        .then(({ error }) => alert(error ? 'Fel: ' + error.message : 'Återställningslänk skickad!'));
+    }
+    function toggleText() {
+      const rest = document.getElementById('rest-av-texten');
+      const btn = document.getElementById('lasMerBtn');
+      if (rest.style.display === 'none' || !rest.style.display) {
+        rest.style.display = 'block';
+        btn.textContent = 'Visa mindre';
+      } else {
+        rest.style.display = 'none';
+        btn.textContent = 'Läs mer';
+      }
+    }
+    const allowedEmail = 'ninjafjanten1@gmail.com';
+    async function showAdminButtonIfAllowed() {
+      const { data: { user } } = await supabase.auth.getUser();
+      const adminBtn = document.getElementById('admin-btn');
+      if (!user) return;
+      if (user.email === allowedEmail) {
+        adminBtn.style.display = 'inline-block';
+      }
+    }
+    // page load par check
+    showAdminButtonIfAllowed();
+    // login/logout change thay to automatic update
+    supabase.auth.onAuthStateChange(() => {
+      showAdminButtonIfAllowed();
+    });
+  </script>
+  </div>
+  <footer style="margin-top: 2rem;">© <span id="y"></span> Enat Sverige. Alla rättigheter förbehållna.</footer>
+  <script>document.getElementById('y').textContent = new Date().getFullYear();</script>
+</body>
+
+</html>
