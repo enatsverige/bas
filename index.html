@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Enat Sverige</title>
   <link rel="icon" type="image/x-icon" href="enat-sverige-logga.ico">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     body {
       font-family: sans-serif;
@@ -13,45 +14,64 @@
       color: #ffc200;
       padding: 2rem;
       text-align: center;
+      margin: 0;
     }
 
-    h1 {
-      font-size: 2.5rem;
-      margin-bottom: 1rem;
+    /* Layout-struktur */
+    .main-container {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+      text-align: left; /* Texten inuti boxarna ska vara vänsterställd */
     }
 
-    h2 {
-      font-size: 1.2rem;
+    /* Sidokolumnerna */
+    .sidebar-left, .sidebar-right {
+      flex: 1;
+      min-width: 150px;
     }
 
-    form {
-      margin: 1rem auto;
+    /* Mittenkolumnen */
+    .main-content {
+      flex: 3;
+      text-align: center;
+    }
+
+    /* Boxen på högersidan */
+    .info-box {
       background: #004a99;
       padding: 1rem;
       border-radius: 8px;
-      max-width: 400px;
+      border: 1px solid #ffc200;
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+      color: #ffc200;
+      text-align: center;
     }
 
-    label {
-      display: block;
-      text-align: left;
-      margin-top: 1rem;
-      font-weight: bold;
+    /* Mobilanpassning: Stapla kolumnerna på små skärmar */
+    @media (max-width: 800px) {
+      .main-container {
+        flex-direction: column;
+      }
+      .sidebar-left {
+        display: none; /* Gömmer den tomma vänstersidan på mobilen */
+      }
     }
 
-    input,
-    select {
-      width: calc(100% - 10px);
-      padding: 0.5rem;
-      margin-top: 0.25rem;
-      background-color: #ffc200;
-      color: #003578;
-      border-radius: 6px;
-      border: 1px solid #ccc;
+    /* Din befintliga design */
+    h1 { font-size: 2.5rem; margin-bottom: 1rem; }
+    h2 { font-size: 1.2rem; }
+    
+    .om-oss-box {
+      background: #004a99;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
     }
 
-    button {
+    button, .login-btn {
       margin-top: 1rem;
       padding: 10px 20px;
       font-size: 1rem;
@@ -60,139 +80,99 @@
       color: white;
       border-radius: 25px;
       cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
     }
 
-    button:hover {
+    button:hover, .login-btn:hover {
       background-color: #417fd1;
     }
 
-    #message {
-      margin-top: 2rem;
-      font-size: 1.4rem;
-      font-weight: bold;
-    }
-
-    img {
-      max-width: 200px;
-      margin-bottom: 1rem;
-    }
-
-    .link {
-      font-size: 0.9rem;
-      color: #ffc200;
-      cursor: pointer;
-      text-decoration: underline;
-      margin-top: 0.5rem;
-    }
-
-    .login {
+    img { max-width: 200px; margin-bottom: 1rem; }
+    
+    #policy-section, #contact-info {
+      background-color: #004a99;
+      padding: 1rem;
+      border-radius: 8px;
       margin-top: 1rem;
-      padding: 10px 20px;
-      font-size: 1rem;
-      border: none;
-      background-color: #336bb8;
-      color: white;
-      border-radius: 25px;
-      cursor: pointer;
     }
   </style>
 </head>
 
 <body>
-  <a href="login.html" class="login" style="color: #ffc200; text-decoration: none; font-size: 1.2rem;">
-    Logga in eller registrera dig
-  </a>
-  <h1>ENAT SVERIGE</h1>
-  <img src="enat-sverige-logga.png" alt="Enat Sverige Logga" />
-  <div style="max-width: 800px; margin: auto; padding: 20px;">
-    <h2>Om oss - Enat Sverige</h2>
-    <div id="om-oss-text">
-      <p><strong>Vår vision</strong></p>
-      <p>
-        Enat Sverige är en organisation som arbetar för att förena det svenska folket genom en gemensam känsla av
-        stolthet, identitet och samhörighet. Vi tror på ett Sverige där vår kultur, historia och traditioner värnas, och
-        där alla som kallar Sverige sitt hem kan mötas i respekt och gemenskap. Vår ideologi, KristeNationalSocialism
-        (KNS), är en vägledande filosofi för dem som delar vår vision, men vi välkomnar alla svenskar att delta i vår
-        strävan efter ett starkare och mer enat land – oavsett tro eller bakgrund. Ingen tvingas att ansluta sig till
-        KNS eller att bli kristen; vår dörr är öppen för alla som vill bidra till ett bättre Sverige.
-      </p>
-      <p><strong>Vårt syfte</strong></p>
-      <p>
-        Vi strävar efter att bygga en organisation där svenskar kan mötas, dela sina åsikter och forma en framtid
-        baserad på nationell enhet, självständighet och rättvisa. Genom att fokusera på lokala lösningar och kristna
-        värderingar som kärlek till nästan, barmhärtighet och gemenskap, vill vi skapa ett samhälle där familjen är
-        kärnan, hälsan prioriteras och sanningen respekteras. Vi står för en fredlig nationalism som stärker Sverige
-        utan att hota andra, och vi motsätter oss globala krafter som urholkar vår suveränitet och kultur.
-      </p>
-      <div id="rest-av-texten" style="display: none;">
-        <p><strong>Vår ideologi: KristeNationalSocialism (KNS)</strong></p>
-        <p>
-          KNS är en modern vision för ett självständigt och enat Sverige, byggt på följande principer:
-        </p>
-        <h4>Nationell enhet och självständighet</h4>
-        <p>Vi värnar om Sveriges kulturella identitet och suveränitet, fria från påverkan av globala företag eller
-          överstatliga organisationer.</p>
-        <h4>Ekonomisk självförsörjning</h4>
-        <p>Vi främjar lokal produktion och handel för att skapa en stark, oberoende ekonomi som gynnar svenska
-          medborgare.</p>
-        <h4>Kristna värderingar som vägledning</h4>
-        <p>Vi inspireras av kristen moral – såsom kärlek, rättvisa och familjevärden – men tvingar ingen att anamma
-          kristendomen.</p>
-        <h4>Fredlig nationalism</h4>
-        <p>Vi fokuserar på att stärka Sverige utan aggression mot andra nationer, och vi löser konflikter genom
-          diplomati och förståelse.</p>
-        <h4>Anti-globalism</h4>
-        <p>Vi motsätter oss kulturell utblandning och globala ideologier, och lyfter istället fram en unik svensk
-          identitet.</p>
-        <p><strong>Lösningar på dagens utmaningar</strong></p>
-        <h4>Låg nativitet</h4>
-        <p>Genom generösa bidrag till familjer, bostadsstöd för unga par och en kultur som hyllar föräldraskap vill vi
-          öka födelsetalen och stärka familjen som samhällens grund.</p>
-        <h4>Kriminalitet och kulturell oro</h4>
-        <p>Vi förespråkar striktare invandringspolitik och fler resurser till rättsväsendet för att skapa trygghet i
-          samhället och minska brottsligheten.</p>
-        <h4>Ekonomisk ojämlikhet</h4>
-        <p>En ekonomi fri från globala bankers inflytande där lokala företag och småskalighet prioriteras för att skapa
-          rättvisa möjligheter för alla medborgare.</p>
-        <h4>Ohälsa</h4>
-        <p>Gratis sjukvård och förebyggande hälsa genom näringsrik kost, motion och tillgång till naturen är centrala
-          delar i vår vision för ett friskare Sverige.</p>
-        <h4>Social isolering och skärmtid</h4>
-        <p>Begränsad skärmtid för barn och unga kombinerat med organiserade läger och aktiviteter i naturen för att
-          främja social samvaro och mental hälsa.</p>
-        <h4>Korruption och desinformation</h4>
-        <p>Kyrkan och oberoende instanser granskar medier och makthavare för att säkerställa transparens, ärlighet och
-          fri information i samhället.</p>
-        <p><strong>StormFörbundet – En trygg grund</strong></p>
-        <p>
-          StormFörbundet (SF) är ett statligt finansierat kristet nätverk där familjer samarbetar för att bygga en stark
-          och trofast gemenskap. SF fungerar som en stabil grund där alla kan känna sig välkomna och trygga.
-        </p>
-        <p><strong>Vardagslivet i ett enat Sverige</strong></p>
-        <h4>Skolor</h4>
-        <p>Barnen går i skolor där de lär sig praktiska färdigheter och svenska traditioner, samtidigt som de utvecklar
-          sin kreativitet och kunskap.</p>
-        <h4>Familjer och gemenskap</h4>
-        <p>Familjer samlas för gemensamma måltider och deltar i lokala läger och aktiviteter som stärker banden mellan
-          generationer och grannar.</p>
-        <h4>Ekonomi</h4>
-        <p>Ekonomin är stabil, fri från globala bankers påverkan, och bygger på lokal produktion, handel och hållbarhet.
-        </p>
-        <p><strong>Varför Enat Sverige?</strong></p>
-        <p>
-          Vi tror på ett Sverige där människor känner sig trygga, hörda och stolta över sin identitet. Enat Sverige är
-          en rörelse för dem som vill bygga ett starkare, mer enat och självständigt land där framtiden formas av
-          gemenskap och ansvarstagande.
-        </p>
+
+  <div class="main-container">
+    
+    <aside class="sidebar-left">
+    </aside>
+
+    <main class="main-content">
+      <a href="login.html" class="login-btn" style="color: #ffc200;">
+        Logga in eller registrera dig
+      </a>
+      
+      <h1>ENAT SVERIGE</h1>
+      <img src="enat-sverige-logga.png" alt="Enat Sverige Logga" />
+
+      <div class="om-oss-box">
+        <h2>Om oss - Enat Sverige</h2>
+        <div id="om-oss-text">
+          <p><strong>Vår vision</strong></p>
+          <p>
+            Enat Sverige är en organisation som arbetar för att förena det svenska folket genom en gemensam känsla av
+            stolthet, identitet och samhörighet.
+          </p>
+          
+          <div id="rest-av-texten" style="display: none;">
+            <p><strong>Vårt syfte</strong></p>
+            <p>Vi strävar efter att bygga en organisation där svenskar kan mötas...</p>
+            <h4>Nationell enhet och självständighet</h4>
+            <p>Vi värnar om Sveriges kulturella identitet...</p>
+            </div>
+          
+          <button onclick="toggleText()" id="lasMerBtn">Läs mer</button>
+        </div>
       </div>
-      <button onclick="toggleText()" id="lasMerBtn" style="margin-top: 10px;">Läs mer</button>
-    </div>
+
+      <div style="margin-top: 2rem;">
+        <a href="https://t.me/+U9VxCQMwfL8yM2Zk" target="_blank" style="color: #ffc200; text-decoration: none; font-size: 1.2rem;">
+          <i class="fab fa-telegram-plane" style="margin-right: 8px;"></i>Telegram
+        </a>
+      </div>
+
+      <button onclick="togglePolicy()">Visa policys</button>
+      <div id="policy-section" style="display: none; text-align: left;">
+        <h2>Policy & Ansvarsfriskrivning</h2>
+        <p>1. Användarinnehåll: Allt innehåll som publiceras är användarnas eget ansvar.</p>
+        <p>2. Ingen garanti: Tjänsten tillhandahålls i befintligt skick.</p>
+      </div>
+
+      <div id="contact-section">
+        <button onclick="toggleContact()">Visa kontaktinformation</button>
+        <div id="contact-info" style="display: none;">
+          <p><strong>Email:</strong> enatsverige@yahoo.com</p>
+          <p><strong>Telegram:</strong> @roman_von_2111</p>
+        </div>
+      </div>
+    </main>
+
+    <aside class="sidebar-right">
+      <div class="info-box">
+        <h3>Hälsning</h3>
+        <p>Hej!</p>
+      </div>
+    </aside>
+
   </div>
+
+  <footer style="margin-top: 3rem;">© <span id="y"></span> Enat Sverige. Alla rättigheter förbehållna.</footer>
+
   <script>
+    // Skript för att visa/dölja text
     function toggleText() {
       const restText = document.getElementById('rest-av-texten');
       const btn = document.getElementById('lasMerBtn');
-      if (restText.style.display === 'none' || restText.style.display === '') {
+      if (restText.style.display === 'none') {
         restText.style.display = 'block';
         btn.textContent = 'Visa mindre';
       } else {
@@ -200,74 +180,18 @@
         btn.textContent = 'Läs mer';
       }
     }
-  </script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <div style="margin-top: 3rem; text-align: center;">
-    <a href="https://t.me/+U9VxCQMwfL8yM2Zk" target="_blank"
-      style="color: #ffc200; text-decoration: none; font-size: 1.2rem;">
-      <i class="fab fa-telegram-plane" style="margin-right: 8px;"></i>Telegram
-    </a>
-  </div>
-  <div id="policy-section"
-    style="display: none; margin-top: 3rem; text-align: left; background-color: #004a99; padding: 1rem; border-radius: 8px; color: #ffc200;">
-    <h2>Policy & Ansvarsfriskrivning</h2>
-    <p><strong>1. Användarinnehåll:</strong> Allt innehåll som publiceras eller kommuniceras av användare är deras eget
-      ansvar. Vi tar inget ansvar för information, åsikter, eller handlingar som uttrycks av användare på denna
-      plattform.
-    </p>
-    <p><strong>2. Ingen garanti:</strong> Tjänsten tillhandahålls i befintligt skick utan några garantier. Vi garanterar
-      inte tillgänglighet, säkerhet, eller riktighet i det som delas av användare.</p>
-    <p><strong>3. Tredjepartsinnehåll:</strong> Länkar till externa tjänster (t.ex. Telegram) är användarens eget
-      ansvar.
-      Vi ansvarar inte för innehåll eller handlingar på externa webbplatser.</p>
-    <p><strong>4. Ansvarsbegränsning:</strong> Vi ansvarar inte för eventuella direkta eller indirekta skador, förluster
-      eller problem som kan uppstå till följd av användning av plattformen.</p>
-    <p><strong>5. Rapportering:</strong> Om du ser olämpligt innehåll, vänligen kontakta oss så kan vi granska det.</p>
-    <p><strong>6. Ändringar:</strong> Policyn kan uppdateras utan förvarning. Den senaste versionen gäller alltid.</p>
-    <p><strong>7. de:</strong> de.</p>
-  </div>
-  <div style="margin-top: 2rem; text-align: center;">
-    <button onclick="togglePolicy()"
-      style="padding: 10px 20px; font-size: 1rem; border: none; background-color: #336bb8; color: white; border-radius: 25px; cursor: pointer;">
-      Visa policys
-    </button>
-  </div>
-  <script>
+
     function togglePolicy() {
       const section = document.getElementById('policy-section');
-      if (section.style.display === 'none') {
-        section.style.display = 'block';
-      } else {
-        section.style.display = 'none';
-      }
+      section.style.display = section.style.display === 'none' ? 'block' : 'none';
     }
-  </script>
-  <!-- Kontaktinformation Sektion -->
-  <div id="contact-section" style="margin-top: 2rem;">
-    <button onclick="toggleContact()"
-      style="padding: 10px 20px; font-size: 1rem; border: none; background-color: #336bb8; color: white; border-radius: 25px; cursor: pointer;">
-      Visa kontaktinformation
-    </button>
-    <div id="contact-info"
-      style="display: none; margin-top: 1rem; background-color: #004a99; padding: 1rem; border-radius: 8px; max-width: 400px; margin-left: auto; margin-right: auto;">
-      <p><strong>Email:</strong> <a href="mailto:enatsverige@yahoo.com"
-          style="color: #ffc200;">enatsverige@yahoo.com</a>
-      </p>
-      <p><strong>Telegram:</strong> <a href="https://t.me/roman_von_2111" target="_blank" style="color: #ffc200;">
-          <img src="https://upload.wikimedia.org/wikipedia/commons/8/82/Telegram_logo.svg" alt="Telegram"
-            style="width: 20px; vertical-align: middle; margin-right: 5px;">
-          @roman_von_2111
-        </a></p>
-    </div>
-  </div>
-  <script>
+
     function toggleContact() {
       const contact = document.getElementById('contact-info');
       contact.style.display = contact.style.display === 'none' ? 'block' : 'none';
     }
-  </script>
-  <footer style="margin-top: 2rem;">© <span id="y"></span> Enat Sverige. Alla rättigheter förbehållna.</footer>
-  <script>document.getElementById('y').textContent = new Date().getFullYear();</script>
-</body>
 
+    document.getElementById('y').textContent = new Date().getFullYear();
+  </script>
+</body>
 </html>
