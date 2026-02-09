@@ -140,34 +140,27 @@
     .login {
       margin-top: 1rem;
       padding: 10px 20px;
-      font-size: 1.2rem;
+      font-size: 1rem;
+      border: none;
       background-color: #336bb8;
       color: white;
       border-radius: 25px;
-      text-decoration: none;
-      display: inline-block;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
-
-  <a href="login.html" class="login">
+  <a href="login.html" class="login" style="color: #ffc200; text-decoration: none; font-size: 1.2rem;">
     Logga in eller registrera dig
   </a>
-
   <h1>ENAT SVERIGE</h1>
   <img src="enat-sverige-logga.png" alt="Enat Sverige Logga" />
-
   <div class="layout-container">
-
-    <!-- Vänster sidebar -->
     <aside class="sidebar-left">
       <div class="hello-box">Hej!</div>
       <h3>Vänster sida</h3>
       <p>Detta är vänstersidan. Här kan du lägga till mer senare.</p>
     </aside>
-
-    <!-- Huvudinnehållet -->
     <main class="main-content">
       <div style="max-width: 800px; margin: auto; padding: 20px;">
         <h2>Om oss - Enat Sverige</h2>
@@ -254,16 +247,12 @@
         </div>
       </div>
     </main>
-
-    <!-- Höger sidebar -->
     <aside class="sidebar-right">
       <div class="hello-box">Hej!</div>
       <h3>Höger sida</h3>
       <p>Detta är högersidan. Här kan du lägga till mer senare.</p>
     </aside>
-
   </div>
-
   <script>
     function toggleText() {
       const restText = document.getElementById('rest-av-texten');
@@ -277,16 +266,13 @@
       }
     }
   </script>
-
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
   <div style="margin-top: 3rem; text-align: center;">
     <a href="https://t.me/+U9VxCQMwfL8yM2Zk" target="_blank"
       style="color: #ffc200; text-decoration: none; font-size: 1.2rem;">
       <i class="fab fa-telegram-plane" style="margin-right: 8px;"></i>Telegram
     </a>
   </div>
-
   <div id="policy-section"
     style="display: none; margin-top: 3rem; text-align: left; background-color: #004a99; padding: 1rem; border-radius: 8px; color: #ffc200;">
     <h2>Policy & Ansvarsfriskrivning</h2>
@@ -305,14 +291,12 @@
     <p><strong>6. Ändringar:</strong> Policyn kan uppdateras utan förvarning. Den senaste versionen gäller alltid.</p>
     <p><strong>7. de:</strong> de.</p>
   </div>
-
   <div style="margin-top: 2rem; text-align: center;">
     <button onclick="togglePolicy()"
       style="padding: 10px 20px; font-size: 1rem; border: none; background-color: #336bb8; color: white; border-radius: 25px; cursor: pointer;">
       Visa policys
     </button>
   </div>
-
   <script>
     function togglePolicy() {
       const section = document.getElementById('policy-section');
@@ -323,7 +307,7 @@
       }
     }
   </script>
-
+  <!-- Kontaktinformation Sektion -->
   <div id="contact-section" style="margin-top: 2rem;">
     <button onclick="toggleContact()"
       style="padding: 10px 20px; font-size: 1rem; border: none; background-color: #336bb8; color: white; border-radius: 25px; cursor: pointer;">
@@ -341,16 +325,13 @@
         </a></p>
     </div>
   </div>
-
   <script>
     function toggleContact() {
       const contact = document.getElementById('contact-info');
       contact.style.display = contact.style.display === 'none' ? 'block' : 'none';
     }
   </script>
-
   <footer style="margin-top: 2rem;">© <span id="y"></span> Enat Sverige. Alla rättigheter förbehållna.</footer>
   <script>document.getElementById('y').textContent = new Date().getFullYear();</script>
-
 </body>
 </html>
