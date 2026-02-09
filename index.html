@@ -96,6 +96,28 @@
       border-radius: 25px;
       cursor: pointer;
     }
+    .layout {
+  display: grid;
+  grid-template-columns: 1fr 3fr 1fr;
+  gap: 20px;
+  max-width: 1600px;
+  margin: auto;
+}
+
+.left, .right {
+  background: #004a99;
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+.hej-box {
+  background: #003578;
+  border: 1px solid #ffc200;
+  padding: 10px;
+  border-radius: 6px;
+  text-align: center;
+  font-weight: bold;
+}
   </style>
 </head>
 
@@ -267,8 +289,18 @@
       contact.style.display = contact.style.display === 'none' ? 'block' : 'none';
     }
   </script>
-  <footer style="margin-top: 2rem;">© <span id="y"></span> Enat Sverige. Alla rättigheter förbehållna.</footer>
+   <footer style="margin-top: 2rem;">© <span id="y"></span> Enat Sverige. Alla rättigheter förbehållna.</footer>
   <script>document.getElementById('y').textContent = new Date().getFullYear();</script>
+
+  </div>
+
+  <div class="right">
+    <div class="hej-box">hej</div>
+  </div>
+</div>
 </body>
+<div class="layout">
+  <div class="left"></div>
+  <div class="center">
 
 </html>
