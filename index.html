@@ -24,13 +24,26 @@
       padding: 0 1rem;
     }
 
+    .sidebar-left {
+      flex: 0 0 260px;
+      order: 1;
+      background: #004a99;
+      padding: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+      text-align: left;
+      align-self: start;
+    }
+
     .main-content {
       flex: 1 1 700px;
+      order: 2;
       min-width: 0;
     }
 
-    .sidebar {
+    .sidebar-right {
       flex: 0 0 260px;
+      order: 3;
       background: #004a99;
       padding: 1rem;
       border-radius: 8px;
@@ -55,15 +68,22 @@
       .layout-container {
         flex-direction: column;
       }
-      .sidebar {
+      .sidebar-left,
+      .sidebar-right {
         flex: 1 1 auto;
         width: 100%;
         align-self: stretch;
+        order: unset;
       }
     }
 
-    h1 { font-size: 2.5rem; margin-bottom: 1rem; }
-    h2 { font-size: 1.2rem; }
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+    }
+    h2 {
+      font-size: 1.2rem;
+    }
     form {
       margin: 1rem auto;
       background: #004a99;
@@ -72,8 +92,14 @@
       max-width: 400px;
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
     }
-    label { display: block; text-align: left; margin-top: 1rem; font-weight: bold; }
-    input, select {
+    label {
+      display: block;
+      text-align: left;
+      margin-top: 1rem;
+      font-weight: bold;
+    }
+    input,
+    select {
       width: calc(100% - 10px);
       padding: 0.5rem;
       margin-top: 0.25rem;
@@ -92,27 +118,40 @@
       border-radius: 25px;
       cursor: pointer;
     }
-    button:hover { background-color: #417fd1; }
-    #message { margin-top: 2rem; font-size: 1.4rem; font-weight: bold; }
-    img { max-width: 200px; margin-bottom: 1rem; }
-    .link { font-size: 0.9rem; color: #ffc200; cursor: pointer; text-decoration: underline; margin-top: 0.5rem; }
+    button:hover {
+      background-color: #417fd1;
+    }
+    #message {
+      margin-top: 2rem;
+      font-size: 1.4rem;
+      font-weight: bold;
+    }
+    img {
+      max-width: 200px;
+      margin-bottom: 1rem;
+    }
+    .link {
+      font-size: 0.9rem;
+      color: #ffc200;
+      cursor: pointer;
+      text-decoration: underline;
+      margin-top: 0.5rem;
+    }
     .login {
       margin-top: 1rem;
       padding: 10px 20px;
-      font-size: 1rem;
-      border: none;
+      font-size: 1.2rem;
       background-color: #336bb8;
       color: white;
       border-radius: 25px;
-      cursor: pointer;
-      display: inline-block;
       text-decoration: none;
+      display: inline-block;
     }
   </style>
 </head>
 <body>
 
-  <a href="login.html" class="login" style="color: #ffc200; text-decoration: none; font-size: 1.2rem;">
+  <a href="login.html" class="login">
     Logga in eller registrera dig
   </a>
 
@@ -121,8 +160,8 @@
 
   <div class="layout-container">
 
-    <!-- Vänster sidebar – EN Hej! -->
-    <aside class="sidebar">
+    <!-- Vänster sidebar -->
+    <aside class="sidebar-left">
       <div class="hello-box">Hej!</div>
       <h3>Vänster sida</h3>
       <p>Detta är vänstersidan. Här kan du lägga till mer senare.</p>
@@ -216,8 +255,8 @@
       </div>
     </main>
 
-    <!-- Höger sidebar – EN Hej! -->
-    <aside class="sidebar">
+    <!-- Höger sidebar -->
+    <aside class="sidebar-right">
       <div class="hello-box">Hej!</div>
       <h3>Höger sida</h3>
       <p>Detta är högersidan. Här kan du lägga till mer senare.</p>
@@ -285,7 +324,6 @@
     }
   </script>
 
-  <!-- Kontaktinformation Sektion -->
   <div id="contact-section" style="margin-top: 2rem;">
     <button onclick="toggleContact()"
       style="padding: 10px 20px; font-size: 1rem; border: none; background-color: #336bb8; color: white; border-radius: 25px; cursor: pointer;">
