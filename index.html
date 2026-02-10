@@ -150,14 +150,14 @@
       text-decoration: none;
     }
     .member-btn {
-  all: unset; /* dödar ALL default-styling */
-  display: block;
-  width: 100%;
+  all: unset;
+  display: inline-block;   /* istället för block */
+  width: auto;             /* istället för 100% */
   background: #ffc200;
   color: #003578;
-  padding: 14px;
+  padding: 12px 24px;      /* mindre vertikal bredd */
   border-radius: 12px;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   font-weight: 800;
   text-align: center;
   cursor: pointer;
@@ -268,7 +268,7 @@
         </div>
       </div>
     </main>
-    
+    <aside class="sidebar-right">
       <button class="member-btn" onclick="goToMember()">Hur blir jag medlem</button>
     </aside>
   </div>
