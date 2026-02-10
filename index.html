@@ -39,17 +39,12 @@
       min-width: 0;
     }
 
-    .sidebar-right {
-      flex: 0 0 260px;
-      order: 3;
-      background: #004a99;
-      padding: 1rem;
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.3);
-      text-align: left;
-      align-self: start;
-    }
-
+   .sidebar-right {
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+    
     .hello-box {
       background: #ffc200;
       color: #003578;
@@ -269,7 +264,7 @@
       </div>
     </main>
     <aside class="sidebar-right">
-     
+      <button class="member-btn" onclick="goToMember()">Hur blir jag medlem</button>
     </aside>
   </div>
   <script>
