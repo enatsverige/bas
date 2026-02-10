@@ -249,9 +249,7 @@
       </div>
     </main>
     <aside class="sidebar-right">
-      <div class="hello-box">Hej!</div>
-      <h3>Höger sida</h3>
-      <p>Detta är högersidan. Här kan du lägga till mer senare.</p>
+      <button class="member-btn" onclick="goToMember()">Hur blir jag medlem</button>
     </aside>
   </div>
   <script>
@@ -328,6 +326,12 @@
       contact.style.display = contact.style.display === 'none' ? 'block' : 'none';
     }
   </script>
+  <script>
+function goToMember() {
+  window.location.href = "mem.html";
+}
+</script>
+  
   <footer style="margin-top: 2rem; text-align: center;">© <span id="y"></span> Enat Sverige. Alla rättigheter förbehållna.</footer>
   <script>document.getElementById('y').textContent = new Date().getFullYear();</script>
 </body>
