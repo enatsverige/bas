@@ -36,18 +36,44 @@
       cursor: pointer;
       box-shadow: 0 4px 8px rgba(0,0,0,0.3);
       transition: 0.2s;
+      margin-bottom: 2rem;
     }
 
     .back-btn:hover {
       transform: scale(1.03);
       background: #ffd84d;
     }
+
+    /* Specifikt för medlemslistan */
+    .member-steps {
+      text-align: left;
+      color: #ffc200;
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+    }
+
+    .member-steps h2 {
+      text-align: center;
+      margin-bottom: 1rem;
+    }
   </style>
 </head>
 <body>
-
   <div class="container">
     <button class="back-btn" onclick="goBack()">← Tillbaka till startsidan</button>
+
+    <div class="member-steps">
+      <h2>Så blir du medlem i Enat Sverige</h2>
+      <ol>
+        <li>Du skickar in en medlemsansökan via webbplatsen</li>
+        <li>Ansökan granskas av föreningens styrelse</li>
+        <li>Du genomgår prövotid</li>
+        <li>Styrelsen fattar beslut om medlemskap</li>
+        <li>Du betalar medlemsavgiften (1 kr per år)</li>
+        <li>Du registreras som medlem</li>
+        <li>Du får rättigheter enligt föreningens stadgar</li>
+      </ol>
+    </div>
   </div>
 
   <script>
@@ -55,19 +81,5 @@
       window.location.href = "index.html";
     }
   </script>
-  <div style="color:#ffc200; font-family: Arial, sans-serif;">
-  <h2>Så blir du medlem i Enat Sverige</h2>
-  <ol>
-    <li>Du skickar in en medlemsansökan via webbplatsen</li>
-    <li>Ansökan granskas av föreningens styrelse</li>
-    <li>Du genomgår prövotid</li>
-    <li>Styrelsen fattar beslut om medlemskap</li>
-    <li>Du betalar medlemsavgiften (1 kr per år)</li>
-    <li>Du registreras som medlem</li>
-    <li>Du får rättigheter enligt föreningens stadgar</li>
-  </ol>
-</div>
-
-
 </body>
 </html>
