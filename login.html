@@ -119,7 +119,7 @@
   </div>
   <div id="active-users"
     style="padding: 1rem; background: #003578; color: #ffc200; font-weight: bold; text-align: center;">
-    Laddar antal aktiva användare...
+    Laddar antal aktiva medlemmar...
   </div>
   <form id="register-form">
     <h2>Registrera</h2>
@@ -169,7 +169,7 @@
     async function updateActiveUsersCount() {
       const { data, error } = await supabase.from('Profiles').select('id');
       const el = document.getElementById('active-users');
-      el.textContent = error ? 'Kunde inte hämta aktiva användare' : `Aktiva användare: ${data.length}`;
+      el.textContent = error ? 'Kunde inte hämta aktiva medlemmar' : `Aktiva medlemmar: ${data.length}`;
     }
     updateActiveUsersCount();
     const registerForm = document.getElementById('register-form');
@@ -317,7 +317,7 @@
     });
   </script>
   </div>
-  <footer style="margin-top: 2rem;">© <span id="y"></span> Enat Sverige. Alla rättigheter förbehållna.</footer>
+  <footer style="margin-top: 2rem;">© 2025 Enat Sverige. Alla rättigheter förbehållna.</footer>
   <script>document.getElementById('y').textContent = new Date().getFullYear();</script>
 </body>
 
