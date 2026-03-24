@@ -1,0 +1,151 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+body {
+  background: #003578;
+  color: #ffc200;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.container {
+  background: #00264d;
+  padding: 40px;
+  border-radius: 10px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+h1,
+h2 {
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+input {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 15px;
+  border: none;
+  border-radius: 6px;
+}
+
+button {
+  width: 100%;
+  padding: 12px;
+  background: #ffc200;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+button:hover {
+  opacity: 0.9;
+}
+
+.dashboard {
+  width: 100%;
+  max-width: 1000px;
+  margin: auto;
+}
+
+.nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.nav button {
+  width: auto;
+  padding: 10px 20px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+.table th,
+.table td {
+  border: 1px solid #ffc200;
+  padding: 10px;
+  text-align: left;
+}
+
+.table button {
+  padding: 6px 10px;
+  width: auto;
+}
+
+.section {
+  margin-bottom: 40px;
+}
+
+@media (max-width: 600px) {
+  .container {
+    padding: 25px;
+  }
+
+  .nav {
+    flex-direction: column;
+    gap: 10px;
+  }
+}
+
+/* Leadership register link styling */
+.leader-link-container {
+    text-align: center;
+    margin-top: 15px;
+}
+
+.leader-link {
+    display: inline-block;
+    background: transparent;
+    color: #ffc200;
+    font-weight: 600;
+    text-decoration: none;
+    padding: 8px 12px;
+    border: 2px solid #ffc200;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    font-size: 14px;
+}
+
+.leader-link:hover {
+    background: #ffc200;
+    color: #00264d;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+/* Home icon container */
+.home-icon {
+    position: fixed;      /* stays fixed on screen */
+    top: 15px;            /* distance from top */
+    left: 15px;           /* distance from left */
+    font-size: 24px;      /* icon size */
+    background: #00264d;  /* button background */
+    color: #ffc200;       /* icon color */
+    padding: 8px 12px;    /* spacing around icon */
+    border-radius: 8px;   /* rounded edges */
+    text-decoration: none; /* remove underline */
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    transition: all 0.3s ease;
+    z-index: 9999;        /* above all content */
+}
+
+.home-icon:hover {
+    background: #ffc200;
+    color: #00264d;
+    transform: scale(1.1);
+}

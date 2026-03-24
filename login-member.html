@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logga in - Medlem</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="auth-page">
+    <div class="auth-card">
+        <h1>Logga in som Medlem</h1>
+
+        <form id="loginForm">
+            <input type="email" id="email" placeholder="E-post" required>
+            <input type="password" id="password" placeholder="Lösenord" required>
+            <button type="submit">Logga in</button>
+        </form>
+
+        <p>Har du inget konto? <a href="/register-member.html">Registrera dig som Medlem</a></p>
+        <p><a href="/">← Tillbaka till startsidan</a></p>
+    </div>
+</div>
+
+    <script type="module">
+        const supabase = window.supabase.createClient(
+            'https://jtbcqgjkvzgcjobfbtad.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0YmNxZ2prdnpnY2pvYmZidGFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1MzU0NTksImV4cCI6MjA2OTExMTQ1OX0.ogacm-3bmQI7WDgHZSI2r6jDOrDAGMfI7QtG0avYMTQ'
+        );
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email,
+                password
+            });
+
+            if (error) {
+                alert(error.message);
+                return;
+            }
+
+            if (data.user) {
+                const userId = data.user.id;
+                // 2️⃣ Check if user exists in member_profiles
+                const { data: profile, error: profileError } = await supabase
+                    .from("member_profiles")
+                    .select("id")
+                    .eq("id", userId)
+                    .maybeSingle();
+
+                if (profileError) {
+                    alert("Fel vid kontroll av profil");
+                    return;
+                }
+
+                // 3️⃣ If not member → block login
+                if (!profile) {
+                    await supabase.auth.signOut();
+                    alert("Åtkomst nekad. Endast medlemmar kan logga in.");
+                    return;
+                }
+
+                // 4️⃣ If member → allow login
+                sessionStorage.setItem("user_id", userId);
+                window.location.href = "/forum.html";
+            }
+        });
+        window.showReset = function () {
+    document.getElementById("resetBox").style.display = "block";
+};
+
+    </script>
+</body>
+</html>

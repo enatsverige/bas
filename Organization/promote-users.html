@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Founder Promotion Panel</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../js/supabase.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #020617, #0f172a);
+            color: #fff;
+        }
+
+        /* HEADER */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            padding: 18px 30px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+        }
+
+        /* LAYOUT */
+        .columns {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 25px;
+            padding: 25px;
+        }
+
+        .column h2 {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        /* CARD */
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 12px;
+            margin-top: 10px;
+            transition: 0.3s;
+            animation: fadeIn 0.4s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* BUTTON */
+        .btn {
+            width: 80px;
+            height: 30px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: #fff;
+            cursor: pointer;
+            font-weight: 500;
+            transition: 0.2s;
+            text-align: center;
+        }
+
+        .btn:hover {
+            transform: scale(1.03);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* MODAL */
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* OVERLAY */
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(2, 6, 23, 0.75);
+            backdrop-filter: blur(8px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+        }
+
+        /* MODAL BOX */
+        .modal-box {
+            background: linear-gradient(145deg, #0f172a, #1e293b);
+            padding: 28px;
+            border-radius: 16px;
+            width: 340px;
+            box-shadow:
+                0 20px 40px rgba(0, 0, 0, 0.6),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            animation: popSmooth 0.25s ease;
+            position: relative;
+        }
+
+        /* TITLE */
+        .modal-box h3 {
+            margin: 0 0 8px;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        /* USER NAME */
+        #modalUser {
+            font-size: 14px;
+            opacity: 0.7;
+            margin-bottom: 15px;
+        }
+
+        /* SELECT DROPDOWN */
+        select {
+            width: 100%;
+            margin-top: 10px;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: #020617;
+            color: #fff;
+            outline: none;
+            transition: 0.2s;
+            font-size: 14px;
+        }
+
+        select:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.3);
+        }
+
+        /* BUTTON BASE */
+        .modal-box .btn {
+            margin-top: 12px;
+            padding: 11px;
+            border-radius: 10px;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+            transition: all 0.2s ease;
+        }
+
+        /* CONFIRM BUTTON */
+        #confirmBtn {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+        }
+
+        #confirmBtn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4);
+        }
+
+        /* CANCEL BUTTON */
+        .modal-box .btn:last-child {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .modal-box .btn:last-child:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+
+        .modal-box::after:hover {
+            opacity: 1;
+        }
+
+        /* ANIMATION */
+        @keyframes popSmooth {
+            from {
+                transform: scale(0.85) translateY(10px);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1) translateY(0);
+                opacity: 1;
+            }
+        }
+
+        /* TOAST */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+        }
+
+        .toast {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-top: 10px;
+            background: #22c55e;
+            animation: slideIn 0.3s ease;
+        }
+
+        .toast.error {
+            background: #ef4444;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .link {
+
+            background: #ffc200;
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+        }
+
+        .role-badge {
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 20px;
+            margin-left: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #ccc;
+        }
+
+        /* optional colors */
+        .role-member {
+            background: #1e40af;
+        }
+
+        .role-enatist {
+            background: #7c3aed;
+        }
+
+        .role-leadership {
+            background: #ea580c;
+        }
+
+        .role-founder {
+            background: #16a34a;
+        }
+
+        .log-table-wrapper {
+            margin-top: 15px;
+            overflow-x: auto;
+        }
+
+        .log-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .log-table th {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 12px;
+            font-size: 13px;
+            text-align: left;
+        }
+
+        .log-table td {
+            padding: 10px;
+            font-size: 13px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .log-table tr {
+            animation: fadeRow 0.3s ease;
+        }
+
+        .log-table tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        /* badges */
+        .badge {
+            padding: 3px 8px;
+            border-radius: 20px;
+            font-size: 11px;
+        }
+
+        .from {
+            background: #334155;
+        }
+
+        .to {
+            background: #16a34a;
+        }
+
+        .by {
+            background: #2563eb;
+        }
+
+        /* animation */
+        @keyframes fadeRow {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* pagination */
+        .pagination {
+            margin-top: 12px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .page-btn {
+            padding: 6px 10px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.08);
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .page-btn.active {
+            background: #2563eb;
+        }
+
+        .header-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            backdrop-filter: blur(8px);
+        }
+
+        .header-section h2 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        /* button style link */
+        .no-link {
+            text-decoration: none;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.25s ease;
+        }
+
+        .no-link:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 18px rgba(37, 99, 235, 0.4);
+        }
+        .rank-select {
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: #020617;
+    color: white;
+    border: 1px solid rgba(255,255,255,0.1);
+    cursor: pointer;
+    font-size: 12px;
+    width: 135px;
+}
+
+.rank-select:hover {
+    border-color: #2563eb;
+}
+.search-wrapper {
+    max-width: 400px;   /* 👈 smaller width */
+    margin: 40px auto;  /* 👈 center horizontally */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#searchInput {
+    width: 100%;
+    padding: 10px;
+    border-radius: 10px;
+    border: none;
+    outline: none;
+    background: rgba(255,255,255,0.05);
+    color: white;
+}
+
+#searchResults {
+    width: 100%;
+    margin-top: 10px;
+}
+    </style>
+</head>
+
+<body>
+
+    <div class="header" id="header">
+        <div>marknadsföringshantering</div>
+        <div style="display: flex; gap: 15px;">
+            <p id="userInfo"></p>
+            <p><a href="manage-users.html" class="link">Hantera användare</a></p>
+            <p><a href="#logs-section" class="link">Logs</a></p>
+        </div>
+    </div>
+
+    <div class="search-wrapper">
+        <input 
+            type="text" 
+            id="searchInput" 
+            placeholder="Search user by username..."
+            oninput="searchUsers(this.value)"
+        >
+
+        <div id="searchResults"></div>
+    </div>
+    <div class="columns">
+        <div class="column">
+            <h2>Enatister</h2>
+            <div id="enatists"></div>
+        </div>
+
+        <div class="column">
+            <h2>Medlemmar</h2>
+            <div id="members"></div>
+        </div>
+
+        <div class="column">
+            <h2>organisation</h2>
+            <div id="leaders"></div>
+        </div>
+    </div>
+
+    <!-- MODAL -->
+    <div id="modal" class="modal">
+        <div class="modal-box">
+            <h3>Marknadsför användare</h3>
+            <p id="modalUser"></p>
+
+            <select id="roleSelect">
+                <option value="">Välj Roll</option>
+                <option value="enatist">enatist</option>
+                <option value="member">Medlem</option>
+                <option value="leadership">Ledarskap</option>
+                <option value="founder">Grundare</option>
+            </select>
+
+            <button id="confirmBtn" class="btn" onclick="confirmPromote()">Bekräfta</button>
+            <button class="btn" onclick="closeModal()">Avboka</button>
+        </div>
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+
+    <div style="padding:20px;" id="logs-section">
+        <div class="header-section">
+            <h2>Promotion Logs</h2>
+            <a href="#header" class="no-link"> Promote</a>
+        </div>
+
+        <div class="log-table-wrapper">
+            <table class="log-table">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>From</th>
+                        <th>To</th>
+                        <th>By</th>
+                        <th>Time</th>
+                    </tr>
+                </thead>
+                <tbody id="logs"></tbody>
+            </table>
+        </div>
+
+        <div id="pagination" class="pagination"></div>
+    </div>
+
+    <script type="module">
+
+        const supabase = window.supabaseClient
+        let selectedUser = null
+
+        document.addEventListener("DOMContentLoaded", async () => {
+
+            const role = sessionStorage.getItem("orgRole")
+            const username = sessionStorage.getItem("orgUser")
+
+            if (role !== "founder" && role !== 'leadership') {
+                alert("Access denied")
+                location.href = "dashboard.html"
+                return
+            }
+
+            document.getElementById("userInfo").innerText = username + " (Founder)"
+            loadAll()
+            loadLogs()
+            await loadAllUsersForSearch()
+        })
+
+        async function loadAll() {
+            load("enatist_profiles", "enatists")
+            load("member_profiles", "members")
+            load("organization_users", "leaders")
+            loadLogs()
+
+        }
+
+        async function load(table, containerId) {
+
+            const { data } = await supabase.from(table).select("*")
+            const container = document.getElementById(containerId)
+            container.innerHTML = ""
+
+            data.forEach(user => {
+                container.innerHTML += `
+<div class="card">
+    <h4>
+        ${user.username}
+        <span class="role-badge role-${user.role}">
+            ${user.role}
+        </span>
+    </h4>
+
+    <select class="rank-select"
+        onchange="handleRoleChange(this, '${user.id}', '${user.username}', '${table}')">
+        
+        <option value="">Change Rank</option>
+        <option value="enatist">Enatist</option>
+        <option value="member">Member</option>
+        <option value="leadership">Leadership</option>
+        <option value="founder">Founder</option>
+    </select>
+</div>
+`
+            })
+        }
+
+        /* MODAL */
+        window.openModal = (id, username, table) => {
+            selectedUser = { id, username, fromTable: table }
+            document.getElementById("modalUser").innerText = username
+            document.getElementById("modal").style.display = "flex"
+        }
+
+        window.closeModal = () => {
+            document.getElementById("modal").style.display = "none"
+        }
+        window.searchUsers = (query) => {
+
+    const container = document.getElementById("searchResults")
+    container.innerHTML = ""
+
+    if (!query) return
+
+    const results = allUsers.filter(u =>
+        u.username.toLowerCase().includes(query.toLowerCase())
+    )
+
+    if (results.length === 0) {
+        container.innerHTML = "<p>No users found</p>"
+        return
+    }
+
+    results.forEach(user => {
+        container.innerHTML += `
+        <div class="card">
+            <h4>
+                ${user.username}
+                <span class="role-badge role-${user.role}">
+                    ${user.role}
+                </span>
+            </h4>
+
+            <select class="rank-select"
+                onchange="handleRoleChange(this, '${user.id}', '${user.username}', '${user.table}')">
+                
+                <option value="">Change Rank</option>
+                <option value="enatist">Enatist</option>
+                <option value="member">Member</option>
+                <option value="leadership">Leadership</option>
+                <option value="founder">Founder</option>
+            </select>
+        </div>
+        `
+    })
+}
+
+        /* PROMOTION */
+        async function promoteUserRole({ id, username, fromTable, toTable, newRole }) {
+
+            const promoter = sessionStorage.getItem("orgUser")
+
+            const { data: user } = await supabase
+                .from(fromTable).select("*").eq("id", id).single()
+
+            if (!user) {
+                showToast("Användarens hämtning misslyckades", "error")
+                return
+            }
+
+            let safeRole = newRole
+
+            if (toTable === "member_profiles") safeRole = "regular"
+            if (toTable === "enatist_profiles") safeRole = "enatist"
+            if (toTable === "organization_users") {
+                safeRole = (newRole === "founder") ? "founder" : "leadership"
+            }
+
+            const { error: insertError } = await supabase.from(toTable).upsert({
+                id: user.id,
+                email: user.email,
+                username: user.username,
+                role: safeRole,
+                approved: true,
+                active: true
+            }, { onConflict: "email" })
+
+            if (insertError) {
+                console.error(insertError)
+                showToast("Insert failed: " + insertError.message, "error")
+                return // ❗ STOP here (do NOT delete original user)
+            }
+
+            if (fromTable !== toTable) {
+                const { error: deleteError } = await supabase
+                    .from(fromTable)
+                    .delete()
+                    .eq("id", id)
+
+                if (deleteError) {
+                    console.error(deleteError)
+                    showToast("Delete failed: " + deleteError.message, "error")
+                    return
+                }
+            }
+
+            await supabase.from("promotion_logs").insert({
+                user_id: id,
+                username,
+                previous_role: fromTable,
+                new_role: newRole,
+                promoted_by: promoter
+            })
+
+            showToast(`${username} befordrad till ${newRole}`)
+            loadAll()
+            loadLogs()
+            await loadAllUsersForSearch()
+        }
+        window.handleRoleChange = async (el, id, username, fromTable) => {
+
+    const role = el.value
+    if (!role) return
+
+    const confirmAction = confirm(`Change ${username} to ${role}?`)
+    if (!confirmAction) {
+        el.value = ""
+        return
+    }
+
+    let toTable = ""
+    if (role === "member") toTable = "member_profiles"
+    if (role === "enatist") toTable = "enatist_profiles"
+    if (role === "leadership" || role === "founder") toTable = "organization_users"
+
+    el.disabled = true
+
+    await promoteUserRole({
+        id,
+        username,
+        fromTable,
+        toTable,
+        newRole: role
+    })
+
+    el.value = ""
+    el.disabled = false
+}
+
+        /* CONFIRM */
+        window.confirmPromote = async () => {
+
+            const btn = document.getElementById("confirmBtn")
+            btn.disabled = true
+            btn.innerText = "Bearbetning..."
+
+            const role = document.getElementById("roleSelect").value
+
+            if (!role) {
+                showToast("Select role", "error")
+                btn.disabled = false
+                btn.innerText = "Confirm"
+                return
+            }
+
+            let toTable = ""
+            if (role === "member") toTable = "member_profiles"
+            if (role === "enatist") toTable = 'enatist_profiles'
+            if (role === "leadership" || role === "founder") toTable = "organization_users"
+
+            await promoteUserRole({
+                id: selectedUser.id,
+                username: selectedUser.username,
+                fromTable: selectedUser.fromTable,
+                toTable,
+                newRole: role
+            })
+
+            btn.disabled = false
+            btn.innerText = "Bekräfta"
+            closeModal()
+        }
+
+        let allUsers = []
+
+async function loadAllUsersForSearch() {
+    const tables = ["enatist_profiles", "member_profiles", "organization_users"]
+
+    allUsers = []
+
+    for (let table of tables) {
+        const { data } = await supabase.from(table).select("*")
+
+        if (data) {
+            data.forEach(u => {
+                allUsers.push({
+                    ...u,
+                    table
+                })
+            })
+        }
+    }
+}
+
+        /* TOAST */
+        function showToast(msg, type = "success") {
+            const t = document.createElement("div")
+            t.className = "toast " + (type === "error" ? "error" : "")
+            t.innerText = msg
+            document.getElementById("toastContainer").appendChild(t)
+            setTimeout(() => t.remove(), 3000)
+        }
+
+        let logsData = []
+        let currentPage = 1
+        const perPage = 10
+
+        async function loadLogs() {
+
+            const { data } = await supabase
+                .from("promotion_logs")
+                .select("*")
+                .order("created_at", { ascending: false })
+
+            logsData = data || []
+            renderLogs()
+        }
+        function renderLogs() {
+
+            const start = (currentPage - 1) * perPage
+            const pageData = logsData.slice(start, start + perPage)
+
+            const container = document.getElementById("logs")
+            container.innerHTML = ""
+
+            pageData.forEach(log => {
+                container.innerHTML += `
+                        <tr>
+                            <td><b>${log.username}</b></td>
+                            <td><span class="badge from">${log.previous_role}</span></td>
+                            <td><span class="badge to">${log.new_role}</span></td>
+                            <td><span class="badge by">${log.promoted_by}</span></td>
+                            <td>${new Date(log.created_at).toLocaleString()}</td>
+                        </tr>
+                    `
+            })
+
+            renderPagination()
+        }
+        function renderPagination() {
+
+            const totalPages = Math.ceil(logsData.length / perPage)
+            const container = document.getElementById("pagination")
+            container.innerHTML = ""
+
+            for (let i = 1; i <= totalPages; i++) {
+                container.innerHTML += `
+                        <div class="page-btn ${i === currentPage ? 'active' : ''}"
+                            onclick="changePage(${i})">
+                            ${i}
+                        </div>
+                    `
+            }
+        }
+
+        window.changePage = (page) => {
+            currentPage = page
+            renderLogs()
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,1944 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <title>Enat Sverige Forum • Professionellt nätverk</title>
+    <style>
+        :root {
+            --primary: #0a1d37;
+            /* Deep blue background (Enat style) */
+            --primary-dark: #051225;
+            --accent-gold: #ffd700;
+            /* Gold/yellow for headings & highlights */
+            --accent-orange: #ff8c00;
+            /* Orange buttons like Adminpanel */
+            --card-bg: #11294a;
+            /* Darker blue cards */
+            --text-light: #e0e0ff;
+            /* Light readable text */
+            --gray: #a0c0ff;
+            --light-gray: #3a5a8f;
+            --border: #3a5a8f;
+            --bg: #0a1d37;
+            --white: #ffffff;
+            --liked: #ffd700;
+            /* Gold for liked */
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text-light);
+            line-height: 1.6;
+        }
+
+        header {
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            padding: 16px 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        .topbar {
+            max-width: 1350px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 32px;
+            font-weight: bold;
+            color: var(--accent-gold);
+            letter-spacing: 1px;
+        }
+
+        .logo a {
+            text-decoration: none;
+            color: var(--accent-gold);
+
+        }
+
+        .post-btn {
+            background: var(--accent-orange);
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .post-btn:hover {
+            background: #e07b00;
+            transform: translateY(-2px);
+        }
+        .no-link{
+            background: var(--accent-orange);
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+        }
+        .no-link:hover {
+            background: #e07b00;
+            transform: translateY(-2px);
+        }
+
+        .layout {
+            max-width: 1350px;
+            margin: 30px auto;
+            padding: 0 20px;
+            display: grid;
+            grid-template-columns: 280px 1fr 260px;
+            gap: 30px;
+        }
+
+        aside {
+            position: sticky;
+            top: 90px;
+            height: auto;
+            overflow-y: auto;
+        }
+
+        .sidebar-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            margin-bottom: 24px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            height: fit-content;
+        }
+
+        .profile-card {
+            text-align: center;
+            padding: 30px 20px 20px;
+        }
+
+        .avatar {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            background: #444;
+            margin: 0 auto 16px;
+            overflow: hidden;
+            border: 3px solid var(--accent-gold);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        .avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .name {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            color: var(--accent-gold);
+        }
+
+        .title {
+            font-size: 15px;
+            color: var(--gray);
+        }
+
+        .sidebar-item {
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            color: var(--text-light);
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .sidebar-item:hover {
+            background: rgba(255, 215, 0, 0.12);
+            color: var(--accent-gold);
+        }
+
+
+
+        .sidebar-item svg {
+            width: 26px;
+            height: 26px;
+            fill: currentColor;
+        }
+
+        main {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .post-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            margin: 10px 0 10px 0;
+        }
+
+        .post-header {
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .post-avatar {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            overflow: hidden;
+            background: #555;
+            border: 2px solid var(--accent-gold);
+        }
+
+        .post-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .post-meta h3 {
+            font-size: 17px;
+            font-weight: 700;
+            margin: 0;
+            color: var(--accent-gold);
+        }
+
+        .post-meta span {
+            font-size: 14px;
+            color: var(--gray);
+        }
+
+        .post-content {
+            padding: 16px 20px;
+            font-size: 16px;
+            white-space: pre-wrap;
+        }
+
+        .stats {
+            font-size: 14px;
+            color: var(--gray);
+            padding: 10px 20px;
+            border-top: 1px solid var(--border);
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .post-actions {
+            display: flex;
+            justify-content: space-around;
+            padding: 12px 0;
+            color: var(--gray);
+            border-top: 1px solid var(--border);
+        }
+
+        .action-btn {
+            background: none;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--gray);
+            font-size: 15px;
+            cursor: pointer;
+            padding: 10px 24px;
+            border-radius: 12px;
+            transition: all 0.2s;
+        }
+
+        .action-btn:hover {
+            background: rgba(255, 215, 0, 0.12);
+            color: var(--accent-gold);
+        }
+
+        .action-btn.liked {
+            color: var(--liked);
+            font-weight: 700;
+        }
+
+        .comments-section {
+            padding: 0 20px 20px;
+            display: none;
+        }
+
+        .comment-form,
+        .reply-form {
+            display: flex;
+            gap: 14px;
+            margin: 16px 0;
+        }
+
+        .comment-form {
+            display: none;
+        }
+
+        .comment-form.show,
+        .reply-form.show {
+            display: flex;
+        }
+
+        .comment-input {
+            flex: 1;
+            padding: 12px 18px;
+            background: #1e3a5f;
+            border: 1px solid var(--border);
+            border-radius: 30px;
+            font-size: 15px;
+            color: white;
+            outline: none;
+        }
+
+        .comment-input:focus {
+            border-color: var(--accent-gold);
+            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.2);
+        }
+
+        .send-comment-btn {
+            background: var(--accent-orange);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 30px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .send-comment-btn:hover {
+            background: #e07b00;
+        }
+
+        .send-comment-btn:disabled {
+            background: #a06000;
+            cursor: not-allowed;
+        }
+
+        .comment {
+            display: flex;
+            gap: 14px;
+            margin: 16px 0;
+            padding: 10px 0;
+        }
+
+        .comment-avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: #666;
+            overflow: hidden;
+            flex-shrink: 0;
+            border: 2px solid var(--accent-gold);
+        }
+
+        .comment-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .comment-body {
+            background: #1e3a5f;
+            padding: 12px 18px;
+            border-radius: 20px;
+            font-size: 15px;
+            flex: 1;
+        }
+
+        .comment-name {
+            font-weight: 700;
+            margin-bottom: 4px;
+            color: var(--accent-gold);
+        }
+
+        .comment-text {
+            white-space: pre-wrap;
+        }
+
+        .reply {
+            margin-left: 56px;
+            margin-top: 6px;
+            opacity: 0.92;
+        }
+
+        .reply .comment-body {
+            background: #0f2540;
+        }
+
+        .reply-link {
+            background: none;
+            border: none;
+            color: var(--accent-gold);
+            font-size: 14px;
+            margin-top: 6px;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .reply-link:hover {
+            text-decoration: underline;
+        }
+
+        .reply-form {
+            margin: 10px 0 10px 56px;
+            display: none;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            width: 100%;
+            max-width: 540px;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+            border: 1px solid var(--border);
+            color: var(--text-light);
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header h2 {
+            font-size: 22px;
+            margin: 0;
+            color: var(--accent-gold);
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 32px;
+            cursor: pointer;
+            color: var(--gray);
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 160px;
+            padding: 14px;
+            background: #1e3a5f;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            font-size: 16px;
+            color: white;
+            resize: vertical;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent-gold);
+            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.2);
+        }
+
+        .modal-footer {
+            padding: 16px 20px;
+            border-top: 1px solid var(--border);
+            text-align: right;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .btn {
+            padding: 12px 28px;
+            border: none;
+            border-radius: 50px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: var(--accent-orange);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #e07b00;
+        }
+
+        @media (max-width: 992px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+            aside {
+                position: static;
+                height: auto;
+            }
+
+            #profileBadge{
+                top: unset !important;
+                right: 10%  !important;
+            }
+        }
+
+        .skeleton {
+            animation: pulse 1.5s infinite;
+            background: #1a3b63;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 0.6;
+            }
+
+            50% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0.6;
+            }
+        }
+
+        .profile-btn {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 8px 14px;
+            background: #003578;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .profile-btn:hover {
+            background: #00264d;
+        }
+
+        #profileBadge {
+            position: absolute;
+            right: 5px;
+            top: 5px;
+            background-color: #3a5a8f;
+            border-radius: 15%;
+        }
+
+        .category-badge {
+            background: transparent;
+            border: 1px solid #ffd700;
+            color: #051225;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 6px;
+        }
+
+        select {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            background: #1e3a5f;
+            color: white;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+        .topbar {
+    flex-wrap: wrap;
+}
+
+.topbar>div:nth-child(2) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="topbar">
+            <div class="logo"><a href="index.html"> E.S.F </a></div>
+            <div class="">
+                <button class="post-btn" onclick="openPostModal()">+ Inlägg</button>
+                <a href="leader-dashboard.html" class=" no-link">community leaderboard</a>
+                <a href="private-chat.html" class=" no-link">💬Chat</a>
+                <a href="users.html" class=" no-link">search</a>
+            </div>
+        </div>
+    </header>
+    <div class="layout">
+        <aside>
+            <div class="sidebar-card profile-card">
+                <div class="avatar">
+                    <img id="profileAvatar" src="" alt="profilbild">
+                </div>
+                <div class="name" id="profileName">Laddar...</div>
+                <div id="profileBadge" style="text-align:center;">
+                    <img id="badgeImg" src="" alt="märke" style="height:50px;">
+                    <div id="badgeText" style="font-size:12px;color:#ffd700;">
+                        Märke
+                    </div>
+                </div>
+                <div class="title" id="profileTitle">Laddar...</div>
+                <div class="title" id="profileBio" style="margin-top:6px;font-size:14px;">
+                    Laddar bio...
+                </div>
+                <!-- Profilknapp -->
+                <a id="profileLink" href="#" class="profile-btn">Visa profil</a>
+                <div id="profilePoints">0 Poäng</div>
+                <div style="margin: 12px 0; font-size: 14px; color: var(--accent-gold); text-align: center; font-weight: 500;">
+                    <strong id="followersCount">0</strong> följare 
+                    <span style="color:var(--gray);">•</span> 
+                    <strong id="followingCount">0</strong> följer
+                </div>
+            </div>
+            <div class="sidebar-card">
+                <a href="#" class="sidebar-item" onclick="showFeed()">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" />
+                    </svg>
+                    Flöde
+                </a>
+                <a href="#" class="sidebar-item" onclick="showMyPosts()">
+                    <svg viewBox="0 0 24 24">
+                        <path
+                            d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z" />
+                    </svg>
+                    Mina inlägg
+                </a>
+                <a href="#" class="sidebar-item" onclick="reloadFeed()">
+                    <svg viewBox="0 0 24 24">
+                        <path
+                            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
+                    </svg>
+                    Senaste nytt
+                </a>
+            </div>
+        </aside>
+        <div id="feedSwitch" style="margin-bottom:15px;display:none;">
+            <button onclick="switchFeed('member')">Medlemmar</button>
+            <button onclick="switchFeed('enatist')">Enatister</button>
+        </div>
+        
+        <main>
+            <div style="margin-bottom:15px; display: flex;">
+                    <input 
+                        type="text" 
+                        id="searchPosts" 
+                        placeholder="Sök inlägg..." 
+                        style="width:80%;padding:10px;border-radius:8px;border:1px solid #3a5a8f;background:#1e3a5f;color:white;"
+                    >
+                    <input 
+                        type="date" 
+                        id="searchDate"
+                        style="width:20%;padding:10px;border-radius:8px;border:1px solid #3a5a8f;background:#1e3a5f;color:white;"
+                    >
+                    <select id="accountTypeFilter" style="width:20%;padding:10px;border-radius:8px; margin-top: 0px;border:1px solid #3a5a8f;background:#1e3a5f;color:white;">
+                        <option value="all">All</option>
+                        <option value="enatist">Enatists</option>
+                        <option value="member">Members</option>
+                        <option value="org">Management</option>
+                    </select>
+                </div>
+
+            <div id="feed"></div>
+        </main>
+        <div class="sidebar-card" id="categoryMenu">
+            <h3 style="padding:15px;color:#ffd700;">Kategorier</h3>
+            <a class="sidebar-item" onclick="filterCategory('all')">Alla inlägg</a>
+            <a class="sidebar-item" onclick="filterCategory('Ideology')">Ideologi</a>
+            <a class="sidebar-item" onclick="filterCategory('Strategy')">Strategi</a>
+            <a class="sidebar-item" onclick="filterCategory('Organization')">Organisation</a>
+            <a class="sidebar-item" onclick="filterCategory('Social & Society')">Samhälle & Socialt</a>
+            <a class="sidebar-item" onclick="filterCategory('Media & Communication')">Media & Kommunikation</a>
+            <a class="sidebar-item" onclick="filterCategory('Internal Decisions')">Interna beslut</a>
+            <a class="sidebar-item" onclick="filterCategory('Enatist Discussion')">Enatist-diskussion</a>
+        </div>
+    </div>
+
+    <!-- Modal för att skapa inlägg -->
+    <div class="modal-overlay" id="postModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Skapa inlägg</h2>
+                <button class="close-btn" onclick="closePostModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <textarea id="postText" placeholder="Vad vill du prata om?"></textarea>
+                <br><br>
+                <select id="mainCategory">
+                    <option value="">Välj kategori</option>
+                    <option>Ideologi</option>
+                    <option>Strategi</option>
+                    <option>Organisation</option>
+                    <option>Samhälle & Socialt</option>
+                    <option>Media & Kommunikation</option>
+                    <option>Interna beslut</option>
+                    <option>Enatist-diskussion</option>
+                </select>
+                <select id="subCategory">
+                    <option value="">Välj underkategori</option>
+                    <option>Guider</option>
+                    <option>Diskussion</option>
+                    <option>Förslag</option>
+                    <option>Arkiv</option>
+                </select>
+            </div>
+            <label>Who can see this post?</label>
+            <select id="postVisibility">
+            <option value="enatist">Everyone</option>
+            <option value="member">Members+</option>
+            <option value="org">Management</option>
+            </select>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="addNewPost()" id="postSubmitBtn" disabled>Publicera</button>
+            </div>
+        </div>
+    </div>
+    <script type="module">
+        const supabase = window.supabase.createClient(
+            'https://jtbcqgjkvzgcjobfbtad.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0YmNxZ2prdnpnY2pvYmZidGFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1MzU0NTksImV4cCI6MjA2OTExMTQ1OX0.ogacm-3bmQI7WDgHZSI2r6jDOrDAGMfI7QtG0avYMTQ'
+        );
+        // ────────────────────────────────────────────────
+        //   2. Immediate active / banned check
+        // ────────────────────────────────────────────────
+        // const userId = sessionStorage.getItem("user_id");
+        const userId = sessionStorage.getItem("user_id");
+        const params = new URLSearchParams(window.location.search);
+        const profileUser = params.get("user");
+
+        if (!userId && !profileUser) {
+            window.location.href = "index.html";
+        }
+
+        if (userId) {
+            checkIfActiveAndRedirectIfBanned();
+        }
+
+        function getAvatar(profile) {
+
+                const role = (profile?.role || "").toLowerCase();
+
+                if (role === "founder") {
+                    return "images/founder.png";
+                }
+
+                if (role === "leadership") {
+                    return "images/leader.png";
+                }
+
+                return profile?.avatar_url
+                    ? profile.avatar_url + "?t=" + Date.now()
+                    : generateAvatar(profile?.username || "U");
+            }
+        async function checkIfActiveAndRedirectIfBanned() {
+    try {
+        // 1️⃣ member_profiles
+        const { data: member } = await supabase
+            .from("member_profiles")
+            .select("active, approved")
+            .eq("id", userId)
+            .maybeSingle();
+
+        if (member) {
+            if (member.active === false) {
+                window.location.href = "banned.html";
+            }
+            if (member.approved === false) {
+                window.location.href = "approval-pending.html";
+            }
+            return;
+        }
+
+        // 2️⃣ enatist_profiles
+        const { data: enatist } = await supabase
+            .from("enatist_profiles")
+            .select("active, approved")
+            .eq("id", userId)
+            .maybeSingle();
+
+        if (enatist) {
+            if (enatist.active === false) {
+                window.location.href = "banned.html";
+            }
+            if (enatist.approved === false) {
+                window.location.href = "approval-pending.html";
+            }
+            return;
+        }
+
+        // ✅ 3️⃣ ADD THIS (VERY IMPORTANT)
+        const { data: org } = await supabase
+            .from("organization_users")
+            .select("active")
+            .eq("id", userId)
+            .maybeSingle();
+
+        if (org) {
+            if (org.active === false) {
+                window.location.href = "banned.html";
+            }
+            return;
+        }
+
+        console.warn("User not found in ANY profile table");
+
+    } catch (err) {
+        console.error("Aktiv kontroll misslyckades:", err);
+    }
+}
+        let currentView = "member";
+        function switchFeed(type) {
+            currentView = type;
+
+            posts = allPosts.filter(p =>
+                p.userType === type || p.userType === "org"
+            );
+
+            renderFeed();
+        }
+        function getBadge(postCount) {
+            if (postCount >= 100) return "Platinum";
+            if (postCount >= 50) return "Diamond";
+            if (postCount >= 25) return "Gold";
+            if (postCount >= 10) return "Silver";
+            return "Brown";
+        }
+        function getPointsPerPost(badge) {
+            if (badge === "Platinum") return 35;
+            if (badge === "Diamond") return 25;
+            if (badge === "Gold") return 20;
+            if (badge === "Silver") return 10;
+            return 5; // Brown
+        }
+        async function loadProfile() {
+            const userId = sessionStorage.getItem("user_id");
+                const params = new URLSearchParams(window.location.search);
+                const profileUser = params.get("user");
+
+                if (!userId && !profileUser) {
+                    window.location.href = "index.html";
+                }
+
+                if (userId) {
+                    checkIfActiveAndRedirectIfBanned();
+                }
+            let profile = null;
+            let userType = "";
+            /* check member_profiles */
+            const { data: member } = await supabase
+                .from("member_profiles")
+                .select("*")
+                .eq("id", userId)
+                .maybeSingle();
+            if (member) {
+                profile = member;
+                userType = "Member";
+                window.currentUserType = "member";
+            }
+
+            if (!profile) {
+
+                const { data: org } = await supabase
+                    .from("organization_users")
+                    .select("*")
+                    .eq("id", userId)
+                    .maybeSingle();
+
+                if (org) {
+
+                    profile = org;
+                    userType = "Leadership";
+                    window.currentUserType = "org";
+
+                }
+            }
+            /* check enatist_profiles */
+            if (!profile) {
+                const { data: enatist } = await supabase
+                    .from("enatist_profiles")
+                    .select("*")
+                    .eq("id", userId)
+                    .maybeSingle();
+                if (enatist) {
+                    profile = enatist;
+                    userType = "Enatist";
+                    window.currentUserType = "enatist";
+                }
+            }
+
+
+            if (!profile) {
+                console.log("Profile not found");
+                return;
+            }
+            window.currentUserRole = profile.role;
+            /* update UI */
+            document.getElementById("profileName").textContent =
+                profile.full_name || profile.username;
+            let roleText = profile.role;
+            if (profile.specialty) {
+                roleText = profile.specialty;
+            }
+            document.getElementById("profileTitle").textContent =
+                roleText + " • " + userType;
+            document.getElementById("profileBio").textContent =
+                profile.bio || "No bio added yet";
+            // Set the avatar image
+           const avatarElement = document.getElementById("profileAvatar");
+                const role = (profile.role || "").toLowerCase();
+                if (role === "founder") {
+                    avatarElement.src = "images/founder.png";
+                } 
+                else if (role === "leadership") {
+                    avatarElement.src = "images/leader.png";
+                } 
+                else {
+                    avatarElement.src = profile.avatar_url || generateAvatar(profile.username || "U");
+                }
+            // Hide avatar for Enatist users
+                if (userType === "Enatist") {
+                    const avatarDiv = avatarElement.closest(".avatar");
+                    if (avatarDiv) {
+                        avatarDiv.style.display = "none"; // hide the div
+                    }
+                    avatarElement.style.display = "none"; // hide the <img> itself
+                }
+            const profileLink = document.querySelector(".profile-btn");
+            if (profileLink) {
+                if (userType === "Member") {
+                    profileLink.href = "members/profile.html";
+                } else if (userType === "Enatist") {
+                    profileLink.href = "enatister/profile.html";
+                } else {
+                    profileLink.href = "#"; // fallback
+                }
+            }
+            const badgeImg = document.getElementById("badgeImg");
+            const badgeText = document.getElementById("badgeText");
+            if (profile.badge) {
+                let badgePath = "";
+                if (profile.badge === "Brown") badgePath = "images/brown.png";
+                if (profile.badge === "Silver") badgePath = "images/silver.png";
+                if (profile.badge === "Gold") badgePath = "images/gold.png";
+                if (profile.badge === "Diamond") badgePath = "images/diamond.png";
+                if (profile.badge === "Platinum") badgePath = "images/platinum.png";
+                badgeImg.src = badgePath;
+                badgeText.textContent = profile.badge;
+            } else {
+                badgeImg.style.display = "none";
+                badgeText.style.display = "none";
+            }
+            const pointsEl = document.getElementById("profilePoints");
+            if (pointsEl) {
+                pointsEl.textContent = (profile.contribution_points || 0) + " Contribution Points";
+            }
+            await loadFollowCounts();
+        }
+        async function loadFollowCounts() {
+            if (!currentUserId) return;
+
+            try {
+                // Count followers (people who follow me)
+                const { count: followers } = await supabase
+                    .from('follows')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('followed_id', currentUserId);
+
+                // Count following (people I follow)
+                const { count: following } = await supabase
+                    .from('follows')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('follower_id', currentUserId);
+
+                // Update UI
+                document.getElementById('followersCount').textContent = followers || 0;
+                document.getElementById('followingCount').textContent = following || 0;
+            } catch (err) {
+                console.error("Could not load follow counts:", err);
+                // Optional: show fallback
+                document.getElementById('followersCount').textContent = '—';
+                document.getElementById('followingCount').textContent = '—';
+            }
+        }
+        window.filterCategory = function (category) {
+
+            let basePosts = [...allPosts];
+
+            /* role hierarchy */
+            const roleLevel = {
+                enatist: 1,
+                member: 2,
+                org: 3,
+            };
+
+            /* apply visibility restriction */
+            basePosts = basePosts.filter(p =>
+                roleLevel[window.currentUserType] >= roleLevel[p.min_role]
+            );
+
+            /* apply category filter */
+            if (category === "all") {
+                posts = basePosts;
+            } else {
+                posts = basePosts.filter(p => p.main_category === category);
+            }
+
+            renderFeed();
+        };
+        loadProfile();
+        let posts = [];
+        let allPosts = [];
+        let nextPostId = 3;
+        function showSkeleton() {
+            const feed = document.getElementById("feed");
+            feed.innerHTML = "";
+            for (let i = 0; i < 3; i++) {
+                feed.innerHTML += `
+                    <div class="post-card skeleton" style="padding:20px;height:150px;margin-bottom:20px"></div>`;
+            }
+        }
+        document.getElementById("accountTypeFilter").addEventListener("change", function () {
+
+    const selectedType = this.value;
+
+    const roleLevel = {
+        enatist: 1,
+        member: 2,
+        org: 3
+    };
+
+    // Step 1: apply role visibility restriction
+    let filteredPosts = allPosts.filter(p =>
+        roleLevel[window.currentUserType] >= roleLevel[p.min_role]
+    );
+
+    // Step 2: apply account type filter
+    if (selectedType !== "all") {
+        filteredPosts = filteredPosts.filter(p => p.userType === selectedType);
+    }
+
+    posts = filteredPosts;
+
+    renderFeed();
+});
+        async function loadPosts() {
+            if (
+                window.currentUserRole === "Founder" ||
+                window.currentUserRole === "Leadership"
+            ) {
+                document.getElementById("feedSwitch").style.display = "block";
+            }
+            showSkeleton();
+            const userId = sessionStorage.getItem("user_id");
+            /* 1️⃣ GET POSTS */
+            const { data: postsData } = await supabase
+                .from("global_posts")
+                .select("*")
+                .order("created_at", { ascending: false });
+            const postIds = postsData.map(p => p.id);
+            /* 2️⃣ GET LIKES */
+            const { data: likes } = await supabase
+                .from("global_likes")
+                .select("post_id,user_id,vote,id")
+                .in("post_id", postIds);
+            /* 3️⃣ GET COMMENTS */
+            const { data: comments } = await supabase
+                .from("global_comments")
+                .select("*")
+                .in("post_id", postIds)
+                .order("created_at", { ascending: true });
+            const commentIds = comments.map(c => c.id);
+            /* 4️⃣ GET REPLIES */
+            const { data: replies } = await supabase
+                .from("global_replies")
+                .select("*")
+                .in("comment_id", commentIds)
+                .order("created_at", { ascending: true });
+            /* 5️⃣ GET ALL USER PROFILES */
+            const allUserIds = [
+                ...new Set([
+                    ...postsData.map(p => p.user_id),
+                    ...comments.map(c => c.user_id),
+                    ...replies.map(r => r.user_id)
+                ])
+            ];
+            const { data: members } = await supabase
+                .from("member_profiles")
+                .select("*")
+                .in("id", allUserIds);
+            const { data: enatists } = await supabase
+                .from("enatist_profiles")
+                .select("*")
+                .in("id", allUserIds);
+            const { data: orgUsers } = await supabase
+                .from("organization_users")
+                .select("*")
+                .in("id", allUserIds);
+            const profiles = {};
+            [...members, ...enatists, ...orgUsers].forEach(p => {
+                profiles[p.id] = p;
+            });
+            /* BUILD DATA */
+            posts = postsData.map(post => {
+                const postVotes = likes.filter(l => l.post_id === post.id);
+                const upvotes = postVotes.filter(v => v.vote === 1).length;
+                const downvotes = postVotes.filter(v => v.vote === -1).length;
+                const postComments = comments
+                    .filter(c => c.post_id === post.id)
+                    .map(comment => {
+                        const commentReplies = replies
+                            .filter(r => r.comment_id === comment.id)
+                            .map(reply => {
+                                const profile = profiles[reply.user_id];
+                                return {
+                                    ...reply,
+                                    name: profile?.full_name || profile?.username || "User",
+                                    username: profile?.username || "",
+                                    title: profile?.role || profile?.specialty || "Member",
+                                    avatar: getAvatar(profile),
+                                    userType:
+                                    members.find(m => m.id === reply.user_id) ? "member" :
+                                    enatists.find(e => e.id === reply.user_id) ? "enatist" :
+                                    "org"
+                                };
+                            });
+                        const profile = profiles[comment.user_id];
+                        return {
+                            ...comment,
+                            name: profile?.full_name || profile?.username || "User",
+                            username: profile?.username || "",
+                            title: profile?.role || profile?.specialty || "Member",
+                            avatar: getAvatar(profile),
+                            userType:
+                                members.find(m => m.id === comment.user_id) ? "member" :
+                                enatists.find(e => e.id === comment.user_id) ? "enatist" :
+                                "org",
+                            replies: commentReplies
+                        };
+                    });
+                const profile = profiles[post.user_id];
+                return {
+                    id: post.id,
+                    user_id: post.user_id,
+                    name: profile?.full_name || profile?.username || "User",
+                    title: profile?.role || profile?.specialty || "Member",
+                    badge: profile?.badge || "Brown",
+                    avatar: getAvatar(profile),
+                    time: new Date(post.created_at).toLocaleString(),
+                    content: post.content,
+                    min_role: post.min_role || "enatist ",
+                    userType:
+                        members.find(m => m.id === post.user_id) ? "member" :
+                            enatists.find(e => e.id === post.user_id) ? "enatist" :
+                                "org", username: profile?.username || "",
+                    upvotes: upvotes,
+                    downvotes: downvotes,
+                    userVote: postVotes.find(v => v.user_id === userId)?.vote || 0,
+                    comments: postComments,
+                    main_category: post.main_category,
+                    sub_category: post.sub_category,
+                };
+            });
+            allPosts = [...posts];
+            // check if specific user posts requested
+                const params = new URLSearchParams(window.location.search);
+                const userFilter = params.get("user");
+
+                if (userFilter) {
+                    posts = allPosts.filter(p => p.username === userFilter);
+                    renderFeed();
+                    return;
+                }
+
+            /* ROLE BASED FEED FILTER */
+
+            const roleLevel = {
+                enatist: 1,
+                member: 2,
+                org: 3,
+            };
+
+            posts = allPosts.filter(p =>
+                roleLevel[window.currentUserType] >= roleLevel[p.min_role]
+            );
+
+            renderFeed();
+        }
+        // Helper: get current logged-in user uuid
+const currentUserId = sessionStorage.getItem("user_id");
+
+// 1. Check if current user follows target user
+async function isFollowing(targetUserId) {
+    if (!currentUserId || !targetUserId || targetUserId === currentUserId) return false;
+
+    const { data } = await supabase
+        .from("follows")
+        .select("id")
+        .eq("follower_id", currentUserId)
+        .eq("followed_id", targetUserId)
+        .maybeSingle();
+
+    return !!data;
+}
+
+// 2. Toggle follow / unfollow
+async function toggleFollow(targetUserId, button) {
+    if (!currentUserId || !targetUserId) return;
+
+    const currentlyFollowing = button.textContent.includes("Sluta");
+
+    try {
+        if (currentlyFollowing) {
+            // Unfollow
+            await supabase
+                .from("follows")
+                .delete()
+                .eq("follower_id", currentUserId)
+                .eq("followed_id", targetUserId);
+
+            button.textContent = "Följ";
+            button.style.background = "#1e3a5f";
+        } else {
+            // Follow
+            await supabase
+                .from("follows")
+                .insert({
+                    follower_id: currentUserId,
+                    followed_id: targetUserId
+                });
+
+            button.textContent = "Sluta följa";
+            button.style.background = "rgba(255,215,0,0.15)";
+        }
+    } catch (err) {
+        console.error("Follow error:", err);
+        alert("Kunde inte uppdatera följning – försök igen.");
+    }
+}
+
+// 3. Initialize all follow buttons after feed is rendered
+function initFollowButtons() {
+    document.querySelectorAll(".follow-btn").forEach(btn => {
+        const targetUserId = btn.dataset.userId;
+
+        // Don't show follow button on own posts
+        if (targetUserId === currentUserId) {
+            btn.style.display = "none";
+            return;
+        }
+
+        // Set initial state
+        isFollowing(targetUserId).then(following => {
+            btn.textContent = following ? "Sluta följa" : "Följ";
+            if (following) {
+                btn.style.background = "rgba(255,215,0,0.15)";
+            }
+        });
+
+        // Click handler
+        btn.onclick = () => toggleFollow(targetUserId, btn);
+    });
+}
+        async function updateUserPostStats(userId) {
+            let table = null;
+            const { data: member } = await supabase
+                .from("member_profiles")
+                .select("id")
+                .eq("id", userId)
+                .maybeSingle();
+            if (member) {
+                table = "member_profiles";
+            }
+            if (!table) {
+                const { data: enatist } = await supabase
+                    .from("enatist_profiles")
+                    .select("id")
+                    .eq("id", userId)
+                    .maybeSingle();
+                if (enatist) {
+                    table = "enatist_profiles";
+                }
+            }
+            if (!table) return;
+            /* count posts */
+            const { count } = await supabase
+                .from("global_posts")
+                .select("*", { count: "exact", head: true })
+                .eq("user_id", userId);
+            const badge = getBadge(count);
+            /* NEW: calculate contribution points */
+            const pointsPerPost = getPointsPerPost(badge);
+            const totalPoints = count * pointsPerPost;
+            await supabase
+                .from(table)
+                .update({
+                    post_count: count,
+                    badge: badge,
+                    contribution_points: totalPoints
+                })
+                .eq("id", userId);
+        }
+        window.showFeed = function () {
+            posts = [...allPosts];
+            renderFeed();
+        };
+        window.showMyPosts = function () {
+            const userId = sessionStorage.getItem("user_id");
+            posts = allPosts.filter(post => post.user_id === userId);
+            renderFeed();
+        };
+        window.reloadFeed = function () {
+            loadPosts();
+        };
+        function generateAvatar(username) {
+            const letter = username.charAt(0).toUpperCase();
+            const colors = [
+                "#FF6B6B", "#6BCB77", "#4D96FF", "#FFD93D",
+                "#845EC2", "#FF9671", "#00C9A7", "#0081CF"
+            ];
+            const bg = colors[username.charCodeAt(0) % colors.length];
+            const svg = `
+    <svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'>
+        <rect width='100%' height='100%' fill='${bg}'/>
+        <text x='50%' y='55%' font-size='60' text-anchor='middle'
+        fill='white' font-family='Arial' dy='.3em'>${letter}</text>
+    </svg>
+    `;
+            return "data:image/svg+xml;base64," + btoa(svg);
+        }
+        function getProfileUrl(username, userType) {
+            if (userType === "member") {
+                return `/members/profile.html?user=${username}`;
+            }
+            if (userType === "enatist") {
+                return `/enatister/profile.html?user=${username}`;
+            }
+            return "#";
+        }
+        let initialPosts = 5;
+        let loadMorePosts = 20;
+        let currentLimit = initialPosts
+        function renderFeed() {
+
+            const feed = document.getElementById("feed");
+            feed.innerHTML = "";
+
+            const visiblePosts = posts.slice(0, currentLimit);
+
+            visiblePosts.forEach((post, postIndex) => {
+
+                const card = document.createElement("div");
+                card.className = "post-card";
+                card.dataset.postId = post.id;
+
+                let commentsHtml = post.comments.map((comment, commentIndex) =>
+                    renderComment(comment, postIndex, commentIndex)
+                ).join('');
+
+                const reportEmail = "ninjafjanten1@gmail.com";
+
+                const mailtoLink = `mailto:${reportEmail}?subject=Report&body=` +
+                    encodeURIComponent(
+                        `Reporting User:\n\n` +
+                        `Name: ${post.name}\n` +
+                        `Username: ${post.username}\n` +
+                        `User ID: ${post.userId || post.id}\n` +
+                        `Post ID: ${post.id}\n\n` +
+                        `Reason:\n[Please write the reason here]`
+                    );
+
+                card.innerHTML = `
+<div class="post-header">
+    ${post.userType === "enatist" ? "" : `
+    <div class="post-avatar">
+        <a href="${getProfileUrl(post.username, post.userType)}">
+            <img src="${post.avatar}" alt="">
+        </a>
+    </div>
+    `}
+    <div class="post-meta">
+        <h3>
+            <a href="${getProfileUrl(post.username, post.userType)}" style="color:inherit;text-decoration:none;" target="_blank">
+            ${post.name}
+            </a>
+
+            <button class="follow-btn"
+                data-user-id="${post.user_id}"
+                data-username="${post.username}"
+                style="margin-left:16px; font-size:13px; padding:4px 10px; border-radius:12px; background:#1e3a5f; color:var(--accent-gold); border:1px solid var(--accent-gold); cursor:pointer;">
+                ...
+            </button>
+
+            <a href="${mailtoLink}" class="report-btn" style="margin-left:15px;font-size:14px;color:red;">Report</a>
+
+            ${((window.currentUserRole || "").toLowerCase() === "founder" || post.user_id === currentUserId) ? `
+    <button onclick="deletePost('${post.id}')"
+                style="margin-left:10px;color:#ff4444;background:none;border:none;cursor:pointer;">
+                🗑 Delete
+                </button>
+            ` : ""}
+
+        </h3>
+
+        <span>
+            <span class="category-badge">${post.main_category}</span>
+            ${post.title} • ${post.badge || ""} • ${post.time}
+        </span>
+    </div>
+</div>
+
+<div class="post-content">${post.content.replace(/\n/g, "<br>")}</div>
+
+<div class="stats">⬆ ${post.upvotes || 0} • ⬇ ${post.downvotes || 0} • 💬 ${post.comments.length}</div>
+
+<div class="post-actions">
+    <button class="action-btn" onclick="votePost(${postIndex}, 1)">⬆ Upvote</button>
+    <button class="action-btn" onclick="votePost(${postIndex}, -1)">⬇ Downvote</button>
+    <button class="action-btn" onclick="toggleComments(${postIndex})">💬 Comment</button>
+</div>
+
+<div class="comments-section" id="comments-${post.id}">
+    ${commentsHtml}
+
+    <div class="comment-form" id="comment-form-${post.id}">
+        ${window.currentUserType === "enatist" ? "" : `
+        <div class="comment-avatar">
+            <img src="${document.getElementById("profileAvatar")?.src || ""}">
+        </div>
+        `}
+
+        <input type="text" class="comment-input" id="comment-input-${post.id}" placeholder="Write a comment..." />
+        <button class="send-comment-btn" disabled onclick="addComment(${postIndex})">Send</button>
+    </div>
+</div>
+`;
+
+                feed.appendChild(card);
+
+                const input = document.getElementById(`comment-input-${post.id}`);
+                const sendBtn = card.querySelector(`#comment-form-${post.id} .send-comment-btn`);
+
+                if (input && sendBtn) {
+                    input.addEventListener('input', () => {
+                        sendBtn.disabled = input.value.trim() === '';
+                    });
+                }
+
+            });
+
+            // LOAD MORE BUTTON
+            if (posts.length > currentLimit) {
+
+                const loadMoreBtn = document.createElement("button");
+                loadMoreBtn.textContent = "Läs mer";
+                loadMoreBtn.className = "post-btn";
+                loadMoreBtn.style.margin = "20px auto";
+                loadMoreBtn.style.display = "block";
+
+                loadMoreBtn.onclick = () => {
+                    currentLimit += loadMorePosts;
+                    renderFeed();
+                };
+
+                feed.appendChild(loadMoreBtn);
+            }
+            initFollowButtons();
+        }
+        function renderComment(comment, postIndex, commentIndex, isReply = false) {
+            let repliesHtml = '';
+            if (comment.replies && comment.replies.length > 0) {
+                repliesHtml = comment.replies.map((reply, replyIndex) =>
+                    renderComment(reply, postIndex, replyIndex, true)
+                ).join('');
+            }
+            const formId = `reply-form-${postIndex}-${commentIndex}`;
+            return `
+                <div class="comment ${isReply ? 'reply' : ''}">
+                    ${comment.userType === "enatist" ? "" : `
+                        <div class="comment-avatar">
+                            <img src="${comment.avatar || generateAvatar(comment.username || 'U')}">
+                        </div>
+                        `}
+                    <div class="comment-body">
+                        <div class="comment-name">${comment.name || "User"}</div>
+                        <div class="comment-text">${(comment.content || "").replace(/\n/g, '<br>')}</div>
+                        ${!isReply ? `
+                        <button class="reply-link"
+                            onclick="toggleReplyForm(${postIndex}, ${commentIndex})">
+                            Reply
+                        </button>` : ''}
+                    </div>
+                </div>
+                ${repliesHtml}
+                ${!isReply ? `
+                <div class="reply-form" id="${formId}">
+                    ${window.currentUserType === "enatist" ? "" : `
+                        <div class="comment-avatar">
+                            <img src="${document.getElementById('profileAvatar')?.src || ""}">
+                        </div>
+                        `}
+                    <input type="text"
+                        class="comment-input"
+                        placeholder="Write a reply..."
+                        id="reply-input-${postIndex}-${commentIndex}" />
+                    <button class="send-comment-btn" disabled>
+                        Send
+                    </button>
+                </div>
+                ` : ''}
+            `;
+        }
+window.deletePost = async function(postId) {
+
+    const post = posts.find(p => p.id === postId);
+    const userId = sessionStorage.getItem("user_id");
+
+    if (window.currentUserRole !== "founder" && post.user_id !== userId) {
+        alert("You can only delete your own posts.");
+        return;
+    }   
+
+    if (!confirm("Delete this post?")) return;
+
+    const { error } = await supabase
+        .from("global_posts")
+        .delete()
+        .eq("id", postId);
+
+    if (error) {
+        console.error(error);
+        alert("Could not delete post.");
+        return;
+    }
+
+    // remove from UI
+    posts = posts.filter(p => p.id !== postId);
+    allPosts = allPosts.filter(p => p.id !== postId);
+
+    renderFeed();
+};
+        function updatePostUI(postIndex) {
+            const post = posts[postIndex];
+
+            const card = document.querySelector(
+                `.post-card[data-post-id="${post.id}"]`
+            );
+
+            if (!card) return;
+
+            const stats = card.querySelector(".stats");
+
+            stats.innerHTML =
+                `⬆ ${post.upvotes} • ⬇ ${post.downvotes} • 💬 ${post.comments.length}`;
+        }
+        window.votePost = async function (postIndex, voteType) {
+
+            const post = posts[postIndex];
+            const userId = sessionStorage.getItem("user_id");
+
+            const { data: existing } = await supabase
+                .from("global_likes")
+                .select("*")
+                .eq("post_id", post.id)
+                .eq("user_id", userId)
+                .maybeSingle();
+
+            if (existing) {
+
+                if (existing.vote === voteType) {
+
+                    await supabase
+                        .from("global_likes")
+                        .delete()
+                        .eq("id", existing.id);
+
+                    if (voteType === 1) post.upvotes--;
+                    if (voteType === -1) post.downvotes--;
+
+                    post.userVote = 0;
+
+                } else {
+
+                    await supabase
+                        .from("global_likes")
+                        .update({ vote: voteType })
+                        .eq("id", existing.id);
+
+                    if (existing.vote === 1) post.upvotes--;
+                    if (existing.vote === -1) post.downvotes--;
+
+                    if (voteType === 1) post.upvotes++;
+                    if (voteType === -1) post.downvotes++;
+
+                    post.userVote = voteType;
+                }
+
+            } else {
+
+                await supabase
+                    .from("global_likes")
+                    .insert({
+                        post_id: post.id,
+                        user_id: userId,
+                        vote: voteType
+                    });
+
+                if (voteType === 1) post.upvotes++;
+                if (voteType === -1) post.downvotes++;
+
+                post.userVote = voteType;
+            }
+
+            updatePostUI(postIndex);
+        }
+        window.toggleCommentForm = function (postIndex) {
+            const post = posts[postIndex];
+            const form = document.getElementById(`comment-form-${post.id}`);
+            if (!form) return;
+            form.classList.add("show");
+            form.scrollIntoView({
+                behavior: "smooth",
+                block: "center"
+            });
+            const input = document.getElementById(`comment-input-${post.id}`);
+            if (input) input.focus();
+        };
+        window.toggleComments = function (postIndex) {
+            const post = posts[postIndex];
+            const commentsSection = document.getElementById(`comments-${post.id}`);
+            const commentForm = document.getElementById(`comment-form-${post.id}`);
+            if (!commentsSection) return;
+            if (commentsSection.style.display === "none" || commentsSection.style.display === "") {
+                commentsSection.style.display = "block";
+                commentForm.classList.add("show");
+                const input = document.getElementById(`comment-input-${post.id}`);
+                if (input) input.focus();
+            } else {
+                commentsSection.style.display = "none";
+                commentForm.classList.remove("show");
+            }
+        };
+document.getElementById("searchPosts").addEventListener("input", function () {
+    const q = this.value.toLowerCase().trim();
+
+    // Step 1: start with all posts
+    let filteredPosts = [...allPosts];
+
+    // Step 2: apply search query
+    if (q) {
+        filteredPosts = filteredPosts.filter(post => {
+            return (
+                (post.content && post.content.toLowerCase().includes(q)) ||
+                (post.name && post.name.toLowerCase().includes(q)) ||
+                (post.main_category && post.main_category.toLowerCase().includes(q)) ||
+                (post.sub_category && post.sub_category.toLowerCase().includes(q))
+            );
+        });
+    }
+
+    const roleLevel = {
+    enatist: 1,
+    member: 2,
+    org: 3
+};
+
+filteredPosts = filteredPosts.filter(p =>
+    roleLevel[window.currentUserType] >= roleLevel[p.min_role]
+);
+
+    // Step 4: render
+    posts = filteredPosts;
+    renderFeed();
+});
+document.addEventListener("DOMContentLoaded", function () {
+
+    const searchAccounts = document.getElementById("searchAccounts");
+    const searchDate = document.getElementById("searchDate");
+
+    if (searchAccounts) {
+        searchAccounts.addEventListener("input", function () {
+            const q = this.value.toLowerCase().trim();
+
+            if (!q) {
+                posts = [...allPosts];
+                renderFeed();
+                return;
+            }
+
+            let filteredPosts = allPosts.filter(post =>
+                (post.name && post.name.toLowerCase().includes(q)) ||
+                (post.username && post.username.toLowerCase().includes(q))
+            );
+
+            posts = filteredPosts;
+            renderFeed();
+        });
+    }
+
+    if (searchDate) {
+        searchDate.addEventListener("change", function () {
+
+            const selectedDate = this.value;
+
+            if (!selectedDate) {
+                posts = [...allPosts];
+                renderFeed();
+                return;
+            }
+
+            let filteredPosts = allPosts.filter(post => {
+                const postDate = new Date(post.time).toISOString().split("T")[0];
+                return postDate === selectedDate;
+            });
+
+            posts = filteredPosts;
+            renderFeed();
+        });
+    }
+
+});
+        function appendCommentToUI(postIndex, comment) {
+            const post = posts[postIndex];
+            const commentsContainer = document.getElementById(`comments-${post.id}`);
+            const commentForm = document.getElementById(`comment-form-${post.id}`);
+
+            const commentHTML = renderComment(
+                comment,
+                postIndex,
+                0
+            );
+
+            // insert BEFORE the input form
+            commentForm.insertAdjacentHTML("beforebegin", commentHTML);
+
+            updatePostUI(postIndex);
+        }
+        window.addComment = async function (postIndex) {
+
+    const post = posts[postIndex];
+    const input = document.getElementById(`comment-input-${post.id}`);
+    const text = input.value.trim();
+
+    if (!text) return;
+
+    const userId = sessionStorage.getItem("user_id");
+
+    const { data, error } = await supabase
+        .from("global_comments")
+        .insert({
+            post_id: post.id,
+            user_id: userId,
+            content: text
+        })
+        .select()
+        .single();
+
+    if (error) {
+        console.error(error);
+        return;
+    }
+
+    const profileName = document.getElementById("profileName").textContent;
+    const avatar = document.getElementById("profileAvatar")?.src || "";
+
+    const newComment = {
+        ...data,
+        name: profileName,
+        avatar: avatar,
+        userType: window.currentUserType,
+        replies: []
+    };
+
+    post.comments.unshift(newComment);
+
+    input.value = "";
+
+    appendCommentToUI(postIndex, newComment);
+
+};
+        window.toggleReplyForm = function (postIndex, commentIndex) {
+            const formId = `reply-form-${postIndex}-${commentIndex}`;
+            const form = document.getElementById(formId);
+            if (!form) return;
+            const wasHidden = form.style.display !== 'flex';
+            form.style.display = wasHidden ? 'flex' : 'none';
+            if (wasHidden) {
+                const input = document.getElementById(`reply-input-${postIndex}-${commentIndex}`);
+                const sendBtn = form.querySelector('.send-comment-btn');
+                input.focus();
+                const updateSendBtn = () => {
+                    sendBtn.disabled = input.value.trim() === '';
+                };
+                input.addEventListener('input', updateSendBtn);
+                updateSendBtn();
+                sendBtn.onclick = () => addReply(postIndex, commentIndex, input, sendBtn);
+            }
+        }
+        window.addReply = async function (postIndex, commentIndex, input, sendBtn) {
+            const text = input.value.trim();
+            if (!text) return;
+            const userId = sessionStorage.getItem("user_id");
+            const comment = posts[postIndex].comments[commentIndex];
+            const { data, error } = await supabase
+                .from("global_replies")
+                .insert({
+                    comment_id: comment.id,
+                    user_id: userId,
+                    content: text
+                })
+                .select()
+                .single();
+            if (error) {
+                console.error(error);
+                return;
+            }
+            const profileName = document.getElementById("profileName").textContent;
+            const avatar = document.getElementById("profileAvatar").src;
+            const newReply = {
+                ...data,
+                name: profileName,
+                userType: window.currentUserType,
+                avatar: avatar
+            };
+            comment.replies.push(newReply);
+            input.value = "";
+            sendBtn.disabled = true;
+            appendReplyToUI(postIndex, commentIndex, newReply);
+        };
+        function appendReplyToUI(postIndex, commentIndex, reply) {
+            const post = posts[postIndex];
+            const comment = post.comments[commentIndex];
+            const postCard = document.querySelector(
+                `.post-card[data-post-id="${post.id}"]`
+            );
+            if (!postCard) return;
+            const commentElements = postCard.querySelectorAll(".comment");
+            const commentElement = commentElements[commentIndex];
+            if (!commentElement) return;
+            const replyHTML = renderComment(
+                reply,
+                postIndex,
+                comment.replies.length - 1,
+                true
+            );
+            commentElement.insertAdjacentHTML("afterend", replyHTML);
+        }
+        function fallbackCopy(textToCopy) {
+            navigator.clipboard.writeText(textToCopy)
+                .then(() => alert('Inlägget kopierat till urklipp! Klistra in var du vill.'))
+                .catch(() => prompt('Kopiera manuellt:', textToCopy));
+        }
+        window.openPostModal = function () {
+            document.getElementById("postModal").style.display = "flex";
+            document.getElementById("postText").focus();
+        }
+        window.closePostModal = function () {
+            document.getElementById("postModal").style.display = "none";
+            document.getElementById("postText").value = "";
+            document.getElementById("postSubmitBtn").disabled = true;
+        }
+        window.addNewPost = async function () {
+            const text = document.getElementById("postText").value.trim();
+            const mainCategory = document.getElementById("mainCategory").value;
+            const subCategory = document.getElementById("subCategory").value;
+            if (!text) {
+                alert("Skriv något först");
+                return;
+            }
+            
+            const userId = sessionStorage.getItem("user_id");
+            if (!userId) {
+                alert("Användaren är inte inloggad");
+                return;
+            }
+            const visibility = document.getElementById("postVisibility").value;
+            const { error } = await supabase
+                .from("global_posts")
+                .insert({
+                    user_id: userId,
+                    content: text,
+                    main_category: mainCategory,
+                    sub_category: subCategory,
+                    user_type: currentUserType,
+                    min_role: visibility
+                });
+            if (error) {
+                console.log(error);
+                alert("Det gick inte att lägga upp");
+                return;
+            }
+            /* clear form */
+            document.getElementById("postText").value = "";
+            document.getElementById("mainCategory").value = "";
+            document.getElementById("subCategory").value = "";
+            closePostModal()
+            /* reload feed */
+            loadPosts();
+        }
+        document.getElementById("postText").addEventListener("input", () => {
+            const text = document.getElementById("postText").value.trim();
+            document.getElementById("postSubmitBtn").disabled = text.length === 0;
+        });
+        document.getElementById("postModal").addEventListener("click", e => {
+            if (e.target === document.getElementById("postModal")) closePostModal();
+        });
+        const CATEGORIES = {
+            "Ideologi": ["Guider", "Diskussion", "Förslag", "Arkiv"],
+            "Strategi": ["Guider", "Diskussion", "Förslag", "Arkiv"],
+            "Organisation": ["Guider", "Diskussion", "Förslag", "Arkiv"],
+            "Socialt och samhälle": ["Guider", "Diskussion", "Förslag", "Arkiv"],
+            "Media och kommunikation": ["Guider", "Diskussion", "Förslag", "Arkiv"],
+            "Interna beslut": ["Diskussion", "Arkiv"],
+            "Enhetsdiskussion": ["Diskussion"]
+        };
+        // Initial render
+        loadPosts();
+        const userIds = sessionStorage.getItem("user_id");
+
+        console.log(userIds);
+    </script>
+</body>
+
+</html>

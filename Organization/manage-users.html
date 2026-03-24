@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hantera användare</title>
+    <link rel="stylesheet" href="../css/org-theme.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../js/supabase.js"></script>
+    <style>
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        .status-active {
+            color: #ff1100;
+            font-weight: bold;
+        }
+
+        .status-banned {
+            color: #ff5b5b;
+            font-weight: bold;
+        }
+
+        .role-drop select {
+            background: #00264d;
+            color: #ffc200;
+            border: 2px solid #ffc200;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .role-drop select:hover {
+            background: #003578;
+        }
+
+        .role-drop select:focus {
+            outline: none;
+            box-shadow: 0 0 6px rgba(255, 194, 0, 0.6);
+        }
+
+        .role-drop option {
+            background: #00264d;
+            color: #ffc200;
+        }
+
+        .confirm-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.45);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .confirm-box {
+            background: #00264d;
+            padding: 25px;
+            border-radius: 8px;
+            width: 320px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            font-family: Arial;
+        }
+
+        .confirm-box p {
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+
+        .confirm-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .btn-confirm {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .btn-confirm:hover {
+            background: #c0392b;
+        }
+
+        .btn-cancel {
+            background: #ccc;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .btn-cancel:hover {
+            background: #aaa;
+        }
+
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            background: #2ecc71;
+            color: white;
+            padding: 12px 18px;
+            border-radius: 6px;
+            font-size: 14px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            animation: toastSlide .35s ease;
+            min-width: 220px;
+        }
+
+        .toast.error {
+            background: #e74c3c;
+        }
+
+        .toast.info {
+            background: #3498db;
+        }
+
+        @keyframes toastSlide {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .right-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            position: absolute;
+            top: 10%;
+            right: 10%;
+        }
+
+        /* user badge */
+        .user-box {
+            background: #1f2937;
+            color: #fff;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: .3px;
+        }
+
+        /* buttons */
+        .nav-btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 7px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .nav-btn:hover {
+            background: #1d4ed8;
+        }
+
+        /* logout style */
+        .logout-btn {
+            background: #dc2626;
+        }
+
+        .logout-btn:hover {
+            background: #b91c1c;
+        }
+        .no-link{
+            text-decoration: none;
+        }
+    </style>
+</head>
+
+<body>
+    <a href="index.html" class="home-icon" title="Gå till startsidan">
+        🏠
+    </a>
+
+    <div class="right-section">
+
+        <div id="userInfo" class="user-box"></div>
+
+        <button class="nav-btn" onclick="location.href='dashboard.html'">
+            Översikt
+        </button>
+
+        <button class="nav-btn logout-btn" onclick="logout()">
+            Logga ut
+        </button>
+
+        <a href="promote-users.html" class="nav-btn no-link">främjande</a>
+
+    </div>
+
+    <div class="dashboard">
+        <div class="nav">
+            <h2>Användarhantering</h2>
+        </div>
+
+        <div class="section">
+            <h3>Medlemmar</h3>
+            <div class="table-wrapper">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Användarnamn</th>
+                            <th>Status</th>
+                            <th>Roller</th>
+                            <th>Åtgärd</th>
+                        </tr>
+                    </thead>
+                    <tbody id="membersList"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>Enatister</h3>
+            <div class="table-wrapper">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Användarnamn</th>
+                            <th>Status</th>
+                            <th>Roll</th>
+                            <th>Åtgärd</th>
+                        </tr>
+                    </thead>
+                    <tbody id="enatistsList"></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="section">
+            <h3>ledarskap</h3>
+            <div class="table-wrapper">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Användarnamn</th>
+                            <th>Status</th>
+                            <th>Roll</th>
+                            <th>Åtgärd</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leadershipList"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="confirmModal" class="confirm-modal">
+        <div class="confirm-box">
+            <p id="confirmMessage"></p>
+
+            <div class="confirm-actions">
+                <button id="confirmYes" class="btn-confirm">Ja</button>
+                <button id="confirmNo" class="btn-cancel">Avbryt</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const supabase = window.supabaseClient
+            loadMembers()
+            loadEnatists()
+            loadLeadership()
+            const role = sessionStorage.getItem("orgRole")
+            window.currentRole = sessionStorage.getItem("orgRole")
+            const username = sessionStorage.getItem("orgUser")
+
+            if (!role) {
+                location.href = "founder-login.html"
+            }
+
+            document.getElementById("userInfo").innerText =
+                username + " (" + role + ")"
+
+            window.logout = async function () {
+
+                const supabase = window.supabaseClient;
+
+                await supabase.auth.signOut();
+
+                localStorage.clear();
+
+                window.location.href = "founder-login.html";
+
+            }
+            async function loadMembers() {
+                const container = document.getElementById("membersList")
+                container.innerHTML = "<tr><td colspan='3'>Loading...</td></tr>"
+                const { data, error } = await supabase
+                    .from("member_profiles")
+                    .select("*")
+                if (error) {
+                    container.innerHTML = "<tr><td colspan='3'>Error loading members</td></tr>"
+                    return
+                }
+                container.innerHTML = ""
+                data.forEach(user => {
+                    const status = user.active === false
+                        ? "<span class='status-banned'>Förbjuden</span>"
+                        : "<span class='status-active'>Aktiv</span>"
+                    container.innerHTML += `
+                        <tr>
+                        <td>${user.username}</td>
+                        <td>${status}</td>
+                        <td class="role-drop">
+
+                            <select onchange="changeRole('${user.id}', this.value)">
+
+                            <option value="regular" ${user.role === 'regular' ? 'selected' : ''}>Regelbunden</option>
+
+                            <option value="active" ${user.role === 'active' ? 'selected' : ''}>Aktiv</option>
+
+                            <option value="core" ${user.role === 'core' ? 'selected' : ''}>kärna</option>
+
+                            </select>
+
+                        </td>
+                        <td>
+${(() => {
+
+    const role = window.currentRole
+    const canManage = ["founder", "leadership"].includes(role)
+
+    if (!canManage) return ''
+
+    // ❌ Leadership cannot manage founders
+    if (role === "leadership" && user.role === "founder") return ''
+
+    return `
+        ${user.approved === false
+            ? `<button onclick="approveMember('${user.id}','${user.username}')" class="nav-btn">Godkänna</button>`
+            : ''
+        }
+
+        ${user.active === false
+            ? `<button onclick="unbanMember('${user.id}','${user.username}')" class="unban-btn">Unban</button>`
+            : `<button onclick="banMember('${user.id}','${user.username}')" class="ban-btn">Förbjuda</button>`
+        }
+    `
+})()}
+</td>
+                        `
+                })
+            }
+            async function loadEnatists() {
+                const container = document.getElementById("enatistsList")
+                container.innerHTML = "<tr><td colspan='3'>Loading...</td></tr>"
+                const { data, error } = await supabase
+                    .from("enatist_profiles")
+                    .select("*")
+                if (error) {
+                    container.innerHTML = "<tr><td colspan='3'>Det gick inte att läsa in användare</td></tr>"
+                    return
+                }
+                container.innerHTML = ""
+                data.forEach(user => {
+                    const status = user.active === false
+                        ? "<span class='status-banned'>Förbjuden</span>"
+                        : "<span class='status-active'>Aktiv</span>"
+                    container.innerHTML += `
+                    <tr>
+                    <td>${user.username}</td>
+                    <td>${status}</td>
+                    <td class="role-drop">
+                        <select onchange="changeEnatistRole('${user.id}', this.value)">
+                            <option value="enatist" ${user.role === 'enatist' ? 'selected' : ''}>Enatist</option>
+                            <option value="active" ${user.role === 'active' ? 'selected' : ''}>Aktiv Enatist</option>
+                            <option value="core" ${user.role === 'core' ? 'selected' : ''}>kärna Enatist</option>
+                        </select>
+                    </td>
+                        <td>
+
+${["founder", "leadership"].includes(window.currentRole) ? `
+
+    ${user.active === false
+        ? `<button onclick="unbanEnatist('${user.id}','${user.username}')" class="unban-btn">Avsluta</button>`
+        : `<button onclick="banEnatist('${user.id}','${user.username}')" class="ban-btn">Förbjuda</button>`
+    }
+
+` : ''}
+
+</td>
+                    </tr>
+                    `
+                })
+            }
+            async function loadLeadership() {
+
+    const container = document.getElementById("leadershipList")
+
+    container.innerHTML = "<tr><td colspan='4'>Loading...</td></tr>"
+
+    const { data, error } = await supabase
+        .from("organization_users")
+        .select("*")
+        .eq("role", "leadership")
+
+    if (error) {
+        console.error(error)
+        container.innerHTML = "<tr><td colspan='4'>Det gick inte att läsa in användare</td></tr>"
+        return
+    }
+
+    container.innerHTML = ""
+
+    data.forEach(user => {
+
+        const status = user.approved === false
+    ? "<span class='status-banned'>Pending Approval</span>"
+    : user.active === false
+        ? "<span class='status-banned'>Disabled</span>"
+        : "<span class='status-active'>Active</span>"
+
+        container.innerHTML += `
+        <tr>
+            <td>${user.username}</td>
+            <td>${status}</td>
+
+            <td class="role-drop">
+                Leadership
+            </td>
+
+            <td>
+${(() => {
+
+    const currentUserId = sessionStorage.getItem("orgUserId")
+    const canManage = ["founder", "leadership"].includes(window.currentRole)
+    const isSelf = user.id === currentUserId
+
+    if (!canManage || isSelf) return ''
+
+    return `
+        ${user.approved === false
+            ? `<button onclick="approveLeadership('${user.id}','${user.username}')" class="nav-btn">
+                Approve
+            </button>`
+            : ''
+        }
+
+        ${user.active === false 
+            ? `<button onclick="enableLeadership('${user.id}','${user.username}')" class="nav-btn">
+                Aktivera ledarskap
+            </button>`
+            : `<button onclick="disableLeadership('${user.id}','${user.username}')" class="ban-btn">
+                Inaktivera ledarskap
+            </button>`
+        }
+    `
+})()}
+</td>
+        </tr>
+        `
+    })
+
+}
+
+window.approveLeadership = async function(id, username){
+
+    if(!confirm(`Approve leadership ${username}?`)) return
+
+    const supabase = window.supabaseClient
+
+        const { error } = await supabase
+        .from("organization_users")
+        .update({ approved: true })
+        .eq("id", id)
+
+    if(error){
+        console.error(error)
+        alert("Failed")
+    }else{
+        alert("Leadership approved")
+        loadLeadership()
+    }
+}
+            window.approveMember = async function (id, username) {
+
+                const supabase = window.supabaseClient
+
+                if (!(await showConfirm(`Godkänn medlem "${username}"?`))) return;
+
+                const { error } = await supabase
+                    .from("member_profiles")
+                    .update({ approved: true })
+                    .eq("id", id)
+
+                if (error) {
+                    showToast("Approval failed", "error")
+                    return
+                }
+
+                showToast(`"${username}" approved`, "success")
+                loadMembers()
+
+            }
+            window.enableLeadership = async function(id, username){
+
+                if(!confirm(`Aktivera ledarskap för ${username}?`)) return
+
+                const { error } = await supabase
+                    .from("organization_users")
+                    .update({ active: true })
+                    .eq("id", id)
+
+                if(error){
+                    console.error(error)
+                    alert("Failed")
+                }else{
+                    alert("Ledarskap aktiverat")
+                    loadLeadership() // refresh table
+                }
+
+            }
+            window.disableLeadership = async function(id, username){
+
+                if(!confirm(`Disable leadership for ${username}?`)) return
+
+                const { error } = await supabase
+                    .from("organization_users")
+                    .update({ active: false })
+                    .eq("id", id)
+
+                if(error){
+                    console.error(error)
+                    alert("Failed")
+                }else{
+                    alert("Ledarskap funktionshindrade")
+                    loadLeadership() // refresh
+                }
+
+            }
+            
+            async function checkLeadershipAccess(){
+
+    const { data } = await supabase
+        .from("organization_users")
+        .select("active, approved, role")
+        .eq("id", (await supabase.auth.getUser()).data.user.id)
+        .single()
+
+    if(!data){
+        window.location.href = "dashboard.html"
+        return
+    }
+
+    // ❌ NOT APPROVED
+    if(data.approved === false){
+        alert("Waiting for founder approval")
+        window.location.href = "leadership-login.html"
+        return
+    }
+
+    // ❌ DISABLED
+    if(data.active === false){
+        window.location.href = "dashboard.html"
+        return
+    }
+}
+
+            checkLeadershipAccess()
+            // window.approveEnatist = async function (id, username) {
+
+            //     const supabase = window.supabaseClient
+
+            //     if (!(await showConfirm(`Approve enatist "${username}"?`))) return;
+
+            //     const { error } = await supabase
+            //         .from("enatist_profiles")
+            //         .update({ approved: true })
+            //         .eq("id", id)
+
+            //     if (error) {
+            //         showToast("Approval failed", "error")
+            //         return
+            //     }
+
+            //     showToast(`"${username}" approved`, "success")
+            //     loadEnatists()
+
+            // }
+            window.banMember = async function (id, username) {
+
+                if (!(await showConfirm(`Ban member "${username}"?`))) return;
+
+                await supabase
+                    .from("member_profiles")
+                    .update({ active: false })
+                    .eq("id", id);
+
+                showToast(`Member "${username}" banned successfully`, "error");
+                loadMembers();
+            }
+
+            window.unbanMember = async function (id, username) {
+
+                if (!(await showConfirm(`Unban member "${username}"?`))) return;
+
+                await supabase
+                    .from("member_profiles")
+                    .update({ active: true })
+                    .eq("id", id);
+
+                showToast(`Member "${username}" unbanned`, "success");
+                loadMembers();
+            }
+
+            window.banEnatist = async function (id, username) {
+
+                if (!(await showConfirm(`Ban enatist "${username}"?`))) return;
+
+                await supabase
+                    .from("enatist_profiles")
+                    .update({ active: false })
+                    .eq("id", id);
+
+                showToast(`Enatist "${username}" banned`, "error");
+                loadEnatists();
+            }
+
+            window.unbanEnatist = async function (id, username) {
+
+                if (!(await showConfirm(`Unban enatist "${username}"?`))) return;
+
+
+                await supabase
+                    .from("enatist_profiles")
+                    .update({ active: true })
+                    .eq("id", id);
+
+                showToast(`Enatist "${username}" unbanned`, "success");
+                loadEnatists();
+            }
+        })
+        function showConfirm(message) {
+
+            return new Promise((resolve) => {
+
+                const modal = document.getElementById("confirmModal")
+                const msg = document.getElementById("confirmMessage")
+                const yes = document.getElementById("confirmYes")
+                const no = document.getElementById("confirmNo")
+
+                msg.textContent = message
+
+                modal.style.display = "flex"
+
+                yes.onclick = () => {
+                    modal.style.display = "none"
+                    resolve(true)
+                }
+
+                no.onclick = () => {
+                    modal.style.display = "none"
+                    resolve(false)
+                }
+
+            })
+
+        }
+        window.changeRole = async function (id, newRole) {
+
+            const supabase = window.supabaseClient
+
+            const { error } = await supabase
+                .from("member_profiles")
+                .update({ role: newRole })
+                .eq("id", id)
+
+            if (error) {
+
+                showToast("Misslyckades med att uppdatera rollen", "fel")
+
+            } else {
+
+                showToast("Roll uppdaterad", "lyckades")
+
+            }
+
+        }
+        window.changeEnatistRole = async function (id, newRole) {
+
+            const supabase = window.supabaseClient
+
+            const { error } = await supabase
+                .from("enatist_profiles")
+                .update({ role: newRole })
+                .eq("id", id)
+
+            if (error) {
+
+                showToast("Misslyckades med att uppdatera rollen", "fel")
+
+            } else {
+
+                showToast("Roll uppdaterad", "lyckades")
+
+            }
+
+        }
+        function showToast(message, type = "success") {
+
+            const container = document.getElementById("toastContainer")
+
+            const toast = document.createElement("div")
+
+            toast.className = "toast"
+
+            if (type === "error") toast.classList.add("error")
+            if (type === "info") toast.classList.add("info")
+
+            toast.innerText = message
+
+            container.appendChild(toast)
+
+            setTimeout(() => {
+                toast.remove()
+            }, 3000)
+
+        }
+    </script>
+</body>
+
+</html>

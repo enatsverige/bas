@@ -1,0 +1,282 @@
+/* GLOBAL */
+
+body {
+    font-family: system-ui, -apple-system, sans-serif;
+    background: #003578;
+    margin: 0;
+    color: #ffc200;
+}
+
+/* CENTER ONLY AUTH PAGES */
+
+.auth-page {
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0px 15px;
+}
+
+/* AUTH CARD */
+
+.auth-card {
+    background: #0b2a57;
+    padding: 40px;
+    border-radius: 12px;
+    width: 380px;
+    max-width: 90%;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .4);
+    text-align: center;
+}
+
+/* TITLE */
+
+.auth-card h1 {
+    margin-bottom: 25px;
+    font-size: 24px;
+}
+
+/* INPUT */
+
+.auth-card input {
+    width: -webkit-fill-available;
+    padding: 12px;
+    margin-bottom: 12px;
+    border-radius: 6px;
+    border: none;
+    background: #082148;
+    color: #fff;
+    font-size: 14px;
+    outline: none;
+}
+
+.auth-card input::placeholder {
+    color: #9fb6d6;
+}
+
+/* BUTTON */
+
+.auth-card button {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 6px;
+    background: #ffc200;
+    color: #003578;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 15px;
+    transition: .2s;
+}
+
+.auth-card button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, .3);
+}
+
+/* LINKS */
+
+.auth-card a {
+    color: #ffc200;
+    text-decoration: none;
+}
+
+.auth-card p {
+    margin-top: 12px;
+    font-size: 14px;
+    opacity: .9;
+}
+
+/* BACK LINK */
+
+.back {
+    display: block;
+    margin-top: 10px;
+    font-size: 13px;
+    opacity: .8;
+}
+
+/* ========================= */
+/* HOME PAGE */
+/* ========================= */
+
+.home-container {
+    max-width: 900px;
+    width: 90%;
+    margin: auto;
+    padding: 80px 0;
+    text-align: center;
+}
+
+/* HEADER */
+
+.home-header {
+    margin-bottom: 50px;
+}
+
+.home-header h1 {
+    font-size: 38px;
+    margin-bottom: 10px;
+}
+
+.home-header p {
+    opacity: .8;
+    font-size: 16px;
+}
+
+/* GRID */
+
+.role-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+}
+
+/* CARD */
+
+.role-card {
+    background: #0b2a57;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, .4);
+    transition: .25s;
+}
+
+.role-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, .6);
+}
+
+.role-card h2 {
+    margin-bottom: 10px;
+}
+
+.role-card p {
+    font-size: 14px;
+    opacity: .9;
+    margin-bottom: 20px;
+}
+
+/* BUTTON AREA */
+
+.role-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+/* BUTTON */
+
+.btn {
+    background: #ffc200;
+    color: #003578;
+    padding: 10px 16px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 14px;
+    transition: .2s;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, .3);
+}
+
+/* OUTLINE BUTTON */
+
+.btn.outline {
+    background: transparent;
+    border: 2px solid #ffc200;
+    color: #ffc200;
+}
+
+.btn.outline:hover {
+    background: #ffc200;
+    color: #003578;
+}
+
+/* MOBILE */
+
+@media(max-width:768px) {
+
+    .role-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .home-header h1 {
+        font-size: 28px;
+    }
+
+    .auth-card {
+        padding: 30px;
+    }
+
+}
+
+/* Role grid layout */
+.role-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 30px;
+    margin-top: 50px;
+}
+
+/* Individual card */
+.role-card {
+    background: #00264d;
+    color: #ffc200;
+    padding: 30px 20px;
+    border-radius: 12px;
+    width: 280px;
+    text-align: center;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    transition: transform 0.3s ease;
+}
+
+.role-card:hover {
+    transform: translateY(-6px);
+}
+
+/* Buttons */
+.role-actions {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+}
+
+.btn {
+    background: #ffc200;
+    color: #00264d;
+    padding: 10px 18px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.btn:hover {
+    background: #ffd633;
+}
+
+.btn.outline {
+    background: transparent;
+    border: 2px solid #ffc200;
+    color: #ffc200;
+}
+
+.btn.outline:hover {
+    background: #ffc200;
+    color: #00264d;
+}
+
+/* Pyramid style: center the organization card */
+.organization-card {
+    flex-basis: 100%;
+    /* full width for small screens */
+    max-width: 320px;
+    margin-top: 30px;
+    /* space below first row */
+}

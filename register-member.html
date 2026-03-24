@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registrera dig - Medlem</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <div class="auth-page">
+        <div class="auth-card">
+            <h1>Registrera dig som Medlem</h1>
+
+            <form id="registerForm">
+                <input type="email" id="email" placeholder="E-post" required autocomplete="email">
+                <input type="password" id="password" placeholder="Lösenord" required autocomplete="new-password">
+                <input type="text" id="username" placeholder="Användarnamn" required autocomplete="username">
+                <input type="text" id="fullName" placeholder="smeknamn">
+                <button type="submit">Registrera</button>
+            </form>
+
+            <p>Har du redan ett konto? <a href="/login-member.html">Logga in</a></p>
+            <p><a href="/">← Tillbaka till startsidan</a></p>
+        </div>
+    </div>
+    <script type="module">
+
+        const supabase = window.supabase.createClient(
+            'https://jtbcqgjkvzgcjobfbtad.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0YmNxZ2prdnpnY2pvYmZidGFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1MzU0NTksImV4cCI6MjA2OTExMTQ1OX0.ogacm-3bmQI7WDgHZSI2r6jDOrDAGMfI7QtG0avYMTQ'
+        );
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const username = document.getElementById('username').value;
+            const fullName = document.getElementById('fullName').value;
+
+            // 1. Sign up in Supabase Auth
+            const { data, error } = await supabase.auth.signUp({
+                email,
+                password,
+                options: {
+                    data: { username, full_name: fullName } // optional metadata
+                }
+            });
+
+            if (error) {
+                alert(error.message);
+                return;
+            }
+
+            if (data.user) {
+                // 2. Insert into member_profiles
+                const { error: profileError } = await supabase
+                    .from('member_profiles')
+                    .insert({
+                        id: data.user.id,
+                        username,
+                        full_name: fullName
+                    });
+
+                if (profileError) {
+                    console.error(profileError);
+                    alert("Profilskapandet misslyckades. Kontakta support.");
+                } else {
+                    alert("Registreringen lyckades! Kontrollera din e-post för att bekräfta kontot.");
+                    // Or auto-login → window.location.href = '/members/profile?user=' + username;
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>

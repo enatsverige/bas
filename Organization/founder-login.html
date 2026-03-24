@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Inloggning för grundare</title>
+
+    <link rel="stylesheet" href="../css/org-theme.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../js/supabase.js"></script>
+
+</head>
+
+<body>
+    <a href="index.html" class="home-icon" title="Gå till startsidan">
+    🏠
+</a>
+
+<div class="container">
+
+    <h2>Inloggning för grundare</h2>
+
+    <form id="loginForm">
+
+        <input id="email" type="email" placeholder="E-post" required autocomplete="email">
+
+        <input id="password" type="password" placeholder="Lösenord" required autocomplete="current-password">
+
+        <button type="submit">Logga in</button>
+
+    </form>
+
+</div>
+
+    <script>
+
+        document.getElementById("loginForm").addEventListener("submit", loginFounder)
+
+        async function loginFounder(e) {
+
+            e.preventDefault()
+
+            const email = document.getElementById("email").value.trim()
+            const password = document.getElementById("password").value.trim()
+
+            const supabase = window.supabaseClient
+
+            /* STEP 1 — AUTH LOGIN */
+
+            const { data: authData, error: authError } =
+                await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                })
+
+            if (authError) {
+
+                alert("Ogiltig inloggning")
+                return
+
+            }
+
+            /* STEP 2 — CHECK ORGANIZATION ROLE */
+
+            const { data: userData, error: userError } =
+                await supabase
+                    .from("organization_users")
+                    .select("*")
+                    .eq("id", authData.user.id)
+                    .single()
+
+            if (userError || !userData) {
+
+                alert("Åtkomst nekad")
+                return
+
+            }
+
+            if (userData.role !== "founder") {
+
+                alert("Du är inte grundaren")
+                return
+
+            }
+
+            /* STEP 3 — SAVE SESSION */
+
+            sessionStorage.setItem("orgRole", userData.role)
+            sessionStorage.setItem("orgUser", userData.username)
+            sessionStorage.setItem("user_id", authData.user.id)
+
+            /* STEP 4 — REDIRECT */
+
+            location.href = "dashboard.html"
+
+        }
+
+    </script>
+
+</body>
+
+</html>

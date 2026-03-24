@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Organisationens instrumentpanel</title>
+
+    <link rel="stylesheet" href="../css/org-theme.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../js/supabase.js"></script>
+
+    <style>
+        body {
+            background: #0f172a;
+            color: #e5e7eb;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        .dashboard {
+            max-width: 1200px;
+            margin: auto;
+            padding: 30px;
+        }
+
+        .nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .nav h2 {
+            color: #60a5fa;
+        }
+
+        .nav button {
+            background: #2563eb;
+            border: none;
+            color: white;
+            padding: 8px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-left: 8px;
+        }
+
+        .nav button:hover {
+            background: #1d4ed8;
+        }
+
+        #welcome {
+            margin-bottom: 25px;
+            color: #cbd5f5;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .card h3 {
+            margin-bottom: 10px;
+            color: #93c5fd;
+        }
+
+        .stat {
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .section {
+            margin-top: 30px;
+        }
+
+        .section h3 {
+            margin-bottom: 10px;
+            color: #93c5fd;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #1e293b;
+            overflow: hidden;
+        }
+
+        .table th,
+        .table td {
+            padding: 10px;
+            text-align: left;
+        }
+
+        .table th {
+            background: #1d4ed8;
+        }
+
+        .table tr:nth-child(even) {
+            background: #273449;
+        }
+
+        .rank {
+            font-weight: bold;
+            color: #facc15;
+        }
+        .no-link{
+            background: var(--accent-orange);
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+        }
+        @media (max-width: 768px) {
+    .table {
+        display: block;
+        overflow-x: auto;
+    }
+}
+    </style>
+
+</head>
+
+<body>
+
+    <div class="dashboard">
+
+        <div class="nav">
+
+
+            <div>
+
+                <button>
+                     <a href="forum.html" class="no-link">Inlägg</a>
+                </button>
+
+
+                <button onclick="logout()">
+                    Logga ut
+                </button>
+
+            </div>
+
+        </div>
+
+        <h3 id="welcome"></h3>
+
+
+        <!-- Topp-rankade medlemmar -->
+
+        <div class="section">
+
+            <h3>🏆 Topp-rankade medlemmar</h3>
+
+            <table class="table">
+
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Användarnamn</th>
+                        <th>Roll</th>
+                        <th>Inlägg</th>
+                        <th>Märke</th>
+                        <th>Poäng</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+
+                <tbody id="topMembers">
+                    <!-- Data fylls dynamiskt via JavaScript -->
+                </tbody>
+
+            </table>
+
+        </div>
+
+        <!-- Topp Enatister -->
+
+        <div class="section">
+
+            <h3>⭐ Topp Enatister</h3>
+
+            <table class="table">
+
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Användarnamn</th>
+                        <th>Roll</th>
+                        <th>Inlägg</th>
+                        <th>Märke</th>
+                        <th>Poäng</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+
+                <tbody id="topEnatists">
+                    <!-- Data fylls dynamiskt via JavaScript -->
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+
+    <script>
+
+        async function loadTopMembers() {
+
+            const supabase = window.supabaseClient
+
+            const { data, error } = await supabase
+                .from("member_profiles")
+                .select("username, role, active, badge, post_count ,contribution_points")
+                .order("contribution_points", { ascending: false })
+                .limit(10)
+
+            if (error) {
+                console.error(error)
+                return
+            }
+
+            const container = document.getElementById("topMembers")
+            container.innerHTML = ""
+
+            data.forEach((user, index) => {
+
+                const status = user.active ? "Active" : "Banned"
+
+                container.innerHTML += `
+        <tr>
+            <td class="rank">${index + 1}</td>
+            <td>${user.username}</td>
+            <td>${user.role}</td>
+            <td>${user.post_count}</td>
+            <td>${user.badge}</td>
+            <td>${user.contribution_points || 0}</td>
+            <td>${status}</td>
+        </tr>
+        `
+            })
+        }
+        async function loadTopEnatists() {
+
+            const supabase = window.supabaseClient
+
+            const { data, error } = await supabase
+                .from("enatist_profiles")
+                .select("username, role, active, badge, post_count ,contribution_points")
+                .order("contribution_points", { ascending: false })
+                .limit(10)
+
+            if (error) {
+                console.error(error)
+                return
+            }
+
+            const container = document.getElementById("topEnatists")
+            container.innerHTML = ""
+
+            data.forEach((user, index) => {
+
+                const status = user.active ? "Active" : "Banned"
+
+                container.innerHTML += `
+        <tr>
+            <td class="rank">${index + 1}</td>
+            <td>${user.username}</td>
+            <td>${user.role}</td>
+            <td>${user.post_count}</td>
+            <td>${user.badge}</td>
+            <td>${user.contribution_points || 0}</td>
+            <td>${status}</td>
+        </tr>
+        `
+            })
+        }
+        
+        document.addEventListener("DOMContentLoaded", () => {
+
+            loadDashboardStats()
+            loadTopMembers()
+            loadTopEnatists()
+
+        })
+
+    
+
+        function logout() {
+
+            localStorage.clear()
+
+            location.href = "index.html"
+
+        }
+        async function loadDashboardStats() {
+
+            const supabase = window.supabaseClient
+
+            const { data, error } = await supabase.rpc("get_dashboard_counts")
+
+            if (error) {
+                console.error(error)
+                return
+            }
+
+        }
+       const userId = sessionStorage.getItem("user_id");
+
+        console.log(userId);
+        
+
+
+    </script>
+
+</body>
+
+</html>
