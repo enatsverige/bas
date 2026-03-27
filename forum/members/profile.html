@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="sv">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medlemsprofil</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="./js/supabase.js"></script>
+    <style>
+        body {
+            font-family: system-ui;
+            background: #003578;
+            color: #ffc200;
+            margin: 0;
+            padding: 40px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .profile-card {
+            background: #0b2a57;
+            padding: 30px;
+            border-radius: 12px;
+            width: 420px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, .4);
+            position: relative;
+        }
+
+        .avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #ffc200;
+            margin-bottom: 15px;
+        }
+
+        .role {
+            background: #ffc200;
+            color: #003578;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-bottom: 10px;
+            width: max-content;
+            margin: auto;
+        }
+
+        .username {
+            opacity: .8;
+            margin-bottom: 15px;
+        }
+
+        .bio {
+            background: #082148;
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        .meta {
+            margin-top: 15px;
+            font-size: 13px;
+            opacity: .8;
+        }
+
+        .edit-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #ffc200;
+            color: #003578;
+            border: none;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            font-size: 18px;
+            cursor: pointer;
+            display: none;
+        }
+
+        .logout-btn {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: #ffc200;
+            color: #003578;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, .6);
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: #0b2a57;
+            padding: 25px;
+            border-radius: 10px;
+            width: 360px;
+        }
+
+        .modal-content input,
+        .modal-content textarea {
+            width: stretch;
+            padding: 8px;
+            margin: 6px 0 12px;
+            border-radius: 6px;
+            border: none;
+        }
+
+        .modal-content button {
+            background: #ffc200;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 15px;
+            background: #082148;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .stats b {
+            font-size: 18px;
+            color: #ffc200;
+        }
+
+        .forum-link {
+            position: absolute;
+            top: 10%;
+            left: 10%;
+            background-color: transparent;
+            background: #0c2a55;
+            color: #ffc334;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, .4);
+        }
+
+        #avatarPreview {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #ffd700;
+            display: block;
+            margin: 10px auto;
+            background: #1e3a5f;
+        }
+
+        #followModal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(6px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        /* Modal box */
+        #followModal .modal-content {
+            background: linear-gradient(145deg, #0b2a57, #081f40);
+            border-radius: 14px;
+            width: 420px;
+            max-height: 520px;
+            padding: 22px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 194, 0, 0.15);
+            animation: modalPop .25s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Title */
+        #followTitle {
+            color: #ffc200;
+            font-size: 18px;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+
+        /* User list */
+        #followList {
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+
+        /* Each user row */
+        #followList div {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            border-radius: 8px;
+            transition: all .2s ease;
+        }
+
+        /* Hover effect */
+        #followList div:hover {
+            background: #0e376e;
+        }
+
+        /* User link */
+        #followList a {
+            color: #ffc200;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+
+
+        /* Scrollbar */
+        #followList::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #followList::-webkit-scrollbar-thumb {
+            background: #ffc200;
+            border-radius: 10px;
+        }
+
+        /* Close button */
+        #followModal button {
+            margin-top: 14px;
+            background: #ffc200;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #003578;
+            transition: all .2s ease;
+        }
+
+        #followModal button:hover {
+            transform: scale(1.05);
+        }
+
+        /* Modal animation */
+        @keyframes modalPop {
+            from {
+                opacity: 0;
+                transform: scale(.9) translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .follow-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .follow-btn {
+            background: #ffc200;
+            border: none;
+            padding: 4px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .follow-btn:hover {
+            transform: scale(1.05);
+        }
+        .badge-text{
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #viewAllPostsBtn{
+            background: #ffc200;
+            color: #003578;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <button class="forum-link" onclick="location.href='../forum.html'">
+        Inlägg
+    </button>
+
+    <div class="profile-card">
+        <button id="logoutBtn" class="logout-btn">Logga ut</button>
+        <button id="editBtn" class="edit-btn">✏️</button>
+        <a id="reportBtn" class="report-btn" style="position:absolute;top:15px;right:60px;font-size:14px;color:red;display:none;">
+Report
+</a>
+        <img id="avatar" class="avatar" src="" alt="Belastning">
+        <div id="role" class="role">Medlem</div>
+        <h1 id="profileName">Laddar...</h1>
+        <div id="username" class="username"></div>
+        <button id="followProfileBtn" class="follow-btn" style="margin-top:8px;display:none;">
+        Follow
+        </button>
+        <div id="bio" class="bio"></div>
+
+        <div class="stats">
+            <div><b id="postCount">0</b><br>Inlägg</div>
+            <div><b id="points">0</b><br>Poäng</div>
+            <!-- <div><b id="badge">Brons</b><br>Märke</div> -->
+             <div class="badge-text" >
+                <img id="badgeImg" style="width:24px;display:none;">
+                <b id="badgeText"></b>
+            </div>
+        </div>
+        <div class="meta">
+            Medlem sedan: <span id="created"></span>
+        </div>
+
+        <span onclick="openFollowModal('followers')" style="cursor:pointer">
+            <strong id="followersCount">0</strong> följare
+        </span>
+
+        <span style="color:var(--gray);">•</span>
+
+        <span onclick="openFollowModal('following')" style="cursor:pointer">
+            <strong id="followingCount">0</strong> följer
+        </span>
+
+        <div style="margin-top: 16px;">
+            <a id="viewAllPostsBtn" href="#" class="profile-btn">
+                Visa alla inlägg
+            </a>
+        </div>
+    </div>
+
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <h2>Redigera profil</h2>
+            <label for="editFullName">Fullständigt namn</label>
+            <input id="editFullName" type="text" autocomplete="name">
+
+            <label for="editUsername">Användarnamn</label>
+            <input id="editUsername" type="text" autocomplete="username">
+
+            <label for="editBio">Biografi</label>
+            <textarea id="editBio" rows="4" placeholder="Berätta lite om dig själv..."></textarea>
+
+            <label for="editAvatar">Profilbild</label>
+            <input type="file" id="editAvatar" accept="image/*">
+            <img id="avatarPreview">
+
+            <button id="saveBtn">Spara</button>
+            <button id="closeedit">close</button>
+        </div>
+    </div>
+
+    <div id="followModal" class="modal">
+        <div class="modal-content">
+            <h3 id="followTitle">Followers</h3>
+            <div id="followList"></div>
+            <button onclick="closeFollowModal()">Close</button>
+        </div>
+    </div>
+
+    <script>
+        let currentProfile = null;
+
+        let selectedAvatarFile = null;
+        let user = null;   // ADD THIS
+        let isVisitor = false;
+
+
+        async function loadProfile() {
+            const supabaseClient = window.supabaseClient;
+
+            const params = new URLSearchParams(window.location.search);
+            let username = params.get("user");
+
+            isVisitor = false;
+            user = null;
+
+            /* if no ?user= then load logged in user */
+            if (!username) {
+
+                const { data: sessionData } = await supabaseClient.auth.getUser();
+                user = sessionData.user;
+
+                if (!user) {
+                    window.location.href = "/";
+                    return;
+                }
+
+                const { data } = await supabaseClient
+                    .from("member_profiles")
+                    .select("username")
+                    .eq("id", user.id)
+                    .single();
+
+                username = data.username;
+
+                /* show owner buttons */
+                document.getElementById("editBtn").style.display = "block";
+                document.getElementById("logoutBtn").style.display = "block";
+
+            } else {
+
+                /* visitor mode */
+                isVisitor = true;
+
+                document.getElementById("editBtn").style.display = "none";
+                document.getElementById("logoutBtn").style.display = "none";
+                document.getElementById("viewAllPostsBtn").style.display ="block";
+            }
+
+            /* load profile */
+            const { data, error } = await supabaseClient
+                .from("member_profiles")
+                .select("*")
+                .eq("username", username)
+                .maybeSingle();
+
+            if (error || !data) {
+                document.getElementById("profileName").textContent = "Profile not found";
+                return;
+            }
+
+            /* approval check */
+            if (data.approved === false) {
+                window.location.href = "../approval-pending.html";
+                return;
+            }
+
+            currentProfile = data;
+            const followBtn = document.getElementById("followProfileBtn");
+
+            if (isVisitor) {
+                followBtn.style.display = "inline-block";
+                initProfileFollowButton();
+            }
+            const postsBtn = document.getElementById("viewAllPostsBtn");
+            postsBtn.href = `../forum.html?user=${data.username}`;
+            if (isVisitor) {
+
+    const reportEmail = "ninjafjanten1@gmail.com";
+
+    const mailtoLink =
+        `mailto:${reportEmail}?subject=Report User&body=` +
+        encodeURIComponent(
+            `Reporting User:\n\n` +
+            `Name: ${data.full_name}\n` +
+            `Username: ${data.username}\n` +
+            `User ID: ${data.id}\n\n` +
+            `Reason:\n[Please write the reason here]`
+        );
+
+    const reportBtn = document.getElementById("reportBtn");
+
+    reportBtn.href = mailtoLink;
+    reportBtn.style.display = "block";
+
+}
+
+            document.getElementById("profileName").textContent =
+                data.full_name || data.username;
+
+            document.getElementById("username").textContent =
+                "@" + data.username;
+
+            document.getElementById("role").textContent =
+                data.role || "Member";
+
+            document.getElementById("bio").textContent =
+                data.bio || "No bio yet";
+
+            document.getElementById("postCount").textContent =
+                data.post_count || 0;
+
+            document.getElementById("points").textContent =
+                data.contribution_points || 0;
+
+            const badgeImg = document.getElementById("badgeImg");
+            const badgeText = document.getElementById("badgeText");
+
+            if (data.badge) {
+
+                let badgePath = "";
+
+                if (data.badge === "Brown") badgePath = "..//images/brown.png";
+                if (data.badge === "Silver") badgePath = "..//images/silver.png";
+                if (data.badge === "Gold") badgePath = "..//images/gold.png";
+                if (data.badge === "Diamond") badgePath = "..//images/diamond.png";
+                if (data.badge === "Platinum") badgePath = "..//images/platinum.png";
+
+                badgeImg.src = badgePath;
+                badgeImg.style.display = "inline";
+
+                badgeText.textContent = data.badge;
+
+            } else {
+
+                badgeImg.style.display = "none";
+                badgeText.style.display = "none";
+
+            }
+            let avatar = data.avatar_url;
+
+            if (!avatar) {
+
+                // avatar = generateAvatar(data.username);
+
+                await supabaseClient
+                    .from("member_profiles")
+                    .update({ avatar_url: avatar })
+                    .eq("id", data.id);
+            }
+
+            document.getElementById("avatar").src = avatar ? avatar + "?t=" + Date.now() : "";
+
+            if (data.created_at) {
+                document.getElementById("created").textContent =
+                    new Date(data.created_at).toLocaleDateString();
+            }
+
+            /* extra protection */
+            if (!isVisitor && user && user.id === data.id) {
+                document.getElementById("editBtn").style.display = "block";
+            }
+            await loadFollowCounts();
+        }
+        async function initProfileFollowButton() {
+
+    const supabaseClient = window.supabaseClient;
+    const followBtn = document.getElementById("followProfileBtn");
+
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (!user) return;
+
+    const followerId = user.id;
+    const followedId = currentProfile.id;
+
+    const { data: existing } = await supabaseClient
+        .from("follows")
+        .select("*")
+        .eq("follower_id", followerId)
+        .eq("followed_id", followedId)
+        .maybeSingle();
+
+    followBtn.textContent = existing ? "Unfollow" : "Follow";
+
+    followBtn.onclick = async () => {
+
+        await toggleFollow(followedId);
+
+        const { data: check } = await supabaseClient
+            .from("follows")
+            .select("*")
+            .eq("follower_id", followerId)
+            .eq("followed_id", followedId)
+            .maybeSingle();
+
+        followBtn.textContent = check ? "Unfollow" : "Follow";
+
+        loadFollowCounts();
+    };
+}
+        async function loadFollowCounts() {
+
+            const supabaseClient = window.supabaseClient;
+
+            if (!currentProfile) return;
+
+            try {
+
+                // Followers (people who follow this profile)
+                const { count: followers } = await supabaseClient
+                    .from('follows')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('followed_id', currentProfile.id);
+
+                // Following (people this profile follows)
+                const { count: following } = await supabaseClient
+                    .from('follows')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('follower_id', currentProfile.id);
+
+                document.getElementById('followersCount').textContent = followers || 0;
+                document.getElementById('followingCount').textContent = following || 0;
+
+            } catch (err) {
+
+                console.error("Could not load follow counts:", err);
+
+                document.getElementById('followersCount').textContent = '—';
+                document.getElementById('followingCount').textContent = '—';
+            }
+        }
+        async function openFollowModal(type) {
+
+            const supabaseClient = window.supabaseClient;
+
+            document.getElementById("followModal").style.display = "flex";
+            document.getElementById("followList").innerHTML = "Loading...";
+
+            let column = type === "followers" ? "followed_id" : "follower_id";
+            let selectUser = type === "followers" ? "follower_id" : "followed_id";
+
+            document.getElementById("followTitle").textContent =
+                type === "followers" ? "Followers" : "Following";
+
+            const { data } = await supabaseClient
+                .from("follows")
+                .select(selectUser)
+                .eq(column, currentProfile.id);
+
+            if (!data || !data.length) {
+                document.getElementById("followList").innerHTML = "No users";
+                return;
+            }
+
+            const ids = data.map(r => r[selectUser]);
+
+            const { data: profiles } = await supabaseClient
+                .from("member_profiles")
+                .select("id, username, full_name")
+                .in("id", ids);
+
+            const list = profiles.map(p => {
+
+                const showButton = !isVisitor
+                ? `<button class="follow-btn" onclick="toggleFollow('${p.id}')">Unfollow</button>`
+                : "";
+
+                return `
+                <div class="follow-row">
+
+                    <a href="./members/profile.html?user=${p.username}">
+                    ${p.full_name || p.username}
+                    </a>
+
+                    ${showButton}
+
+                </div>
+                `;
+
+            }).join("");
+
+            document.getElementById("followList").innerHTML = list;
+        }
+        async function toggleFollow(targetUserId) {
+
+            const supabaseClient = window.supabaseClient;
+
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            if (!user) return;
+
+            const followerId = user.id;
+
+            const { data: existing } = await supabaseClient
+                .from("follows")
+                .select("*")
+                .eq("follower_id", followerId)
+                .eq("followed_id", targetUserId)
+                .maybeSingle();
+
+            if (existing) {
+
+                // UNFOLLOW
+                await supabaseClient
+                    .from("follows")
+                    .delete()
+                    .eq("follower_id", followerId)
+                    .eq("followed_id", targetUserId);
+
+            } else {
+
+                // FOLLOW
+                await supabaseClient
+                    .from("follows")
+                    .insert({
+                        follower_id: followerId,
+                        followed_id: targetUserId
+                    });
+
+            }
+
+            loadFollowCounts();
+
+        }
+        function closeFollowModal() {
+            document.getElementById("followModal").style.display = "none";
+        }
+        document.getElementById("editAvatar").addEventListener("change", (e) => {
+
+            const file = e.target.files[0];
+            if (!file) return;
+
+            selectedAvatarFile = file;
+
+            const reader = new FileReader();
+
+            reader.onload = function () {
+                const preview = document.getElementById("avatarPreview");
+                preview.src = reader.result;
+                preview.style.display = "block";
+            };
+
+            reader.readAsDataURL(file);
+        });
+        document.getElementById("editBtn").onclick = () => {
+            document.getElementById("editFullName").value = currentProfile.full_name || "";
+            document.getElementById("editUsername").value = currentProfile.username;
+            document.getElementById("editBio").value = currentProfile.bio || "";
+            document.getElementById("editModal").style.display = "flex";
+        };
+        document.getElementById("closeedit").onclick = () =>{
+            document.getElementById("editModal").style.display = "none";
+
+        }
+        document.getElementById("saveBtn").onclick = async () => {
+    const supabaseClient = window.supabaseClient;
+
+    const fullName = document.getElementById("editFullName").value.trim();
+    const username = document.getElementById("editUsername").value.trim();
+    const bio = document.getElementById("editBio").value.trim();
+
+    // ────────────────────────────────────────────────
+    //  Validation
+    // ────────────────────────────────────────────────
+    if (fullName.length > 50) {
+        alert("Fullständigt namn får vara max 50 tecken.");
+        return;
+    }
+    if (username.length > 50) {
+        alert("Användarnamn får vara max 50 tecken.");
+        return;
+    }
+    if (username.length === 0) {
+        alert("Användarnamn får inte vara tomt.");
+        return;
+    }
+    if (!/^[a-zA-Z0-9_.-]+$/.test(username)) {
+        alert("Användarnamn får bara innehålla bokstäver, siffror, understreck, punkt och bindestreck.");
+        return;
+    }
+
+    let avatarUrl = currentProfile.avatar_url;
+    let updatePayload = {
+        bio: bio
+    };
+
+    const now = new Date().toISOString();
+
+    // ────────────────────────────────────────────────
+    //  Username change logic
+    // ────────────────────────────────────────────────
+    const usernameChanged = username !== currentProfile.username;
+
+    if (usernameChanged) {
+        if (currentProfile.last_username_changed_at) {
+            const lastChange = new Date(currentProfile.last_username_changed_at);
+            const daysSinceChange = (Date.now() - lastChange.getTime()) / (1000 * 60 * 60 * 24);
+
+            if (daysSinceChange < 30) {
+                const remaining = Math.ceil(30 - daysSinceChange);
+                alert(`Du kan byta användarnamn igen om ${remaining} dag${remaining > 1 ? 'ar' : ''}.`);
+                return;
+            }
+        }
+        updatePayload.username = username;
+        updatePayload.last_username_changed_at = now;
+    }
+
+    // ────────────────────────────────────────────────
+    //  Full name (nickname) change logic
+    // ────────────────────────────────────────────────
+    const fullNameChanged = fullName !== (currentProfile.full_name || "");
+
+    if (fullNameChanged) {
+        if (currentProfile.last_fullname_changed_at) {
+            const lastChange = new Date(currentProfile.last_fullname_changed_at);
+            const daysSinceChange = (Date.now() - lastChange.getTime()) / (1000 * 60 * 60 * 24);
+
+            if (daysSinceChange < 7) {
+                const remaining = Math.ceil(7 - daysSinceChange);
+                alert(`Du kan byta smeknamn/fullständigt namn igen om ${remaining} dag${remaining > 1 ? 'ar' : ''}.`);
+                return;
+            }
+        }
+        updatePayload.full_name = fullName || null; // allow clearing
+        updatePayload.last_fullname_changed_at = now;
+    }
+
+    // ────────────────────────────────────────────────
+    //  Avatar upload (unchanged)
+    // ────────────────────────────────────────────────
+    if (selectedAvatarFile) {
+        // ... your existing avatar resize + upload code ...
+
+        if (uploadError) {
+            alert("Kunde inte ladda upp bilden.");
+            console.error(uploadError);
+            return;
+        }
+
+        const { data } = supabaseClient.storage.from("avatars").getPublicUrl(fileName);
+        avatarUrl = data.publicUrl;
+        updatePayload.avatar_url = avatarUrl;
+    }
+
+    // ────────────────────────────────────────────────
+    //  Perform update
+    // ────────────────────────────────────────────────
+    const { error } = await supabaseClient
+        .from("member_profiles")
+        .update(updatePayload)
+        .eq("id", currentProfile.id);
+
+    if (error) {
+        alert("Uppdateringen misslyckades: " + error.message);
+        console.error(error);
+        return;
+    }
+
+    alert("Profilen har uppdaterats!");
+    location.reload();
+};
+        document.getElementById("logoutBtn").onclick = async () => {
+            const supabaseClient = window.supabaseClient;
+            await supabaseClient.auth.signOut();
+            window.location.href = "/";
+        };
+        document.addEventListener("DOMContentLoaded", loadProfile);
+
+        function renderFeed() {
+
+            const feed = document.getElementById("feed");
+            feed.innerHTML = "";
+
+            const start = 0;
+            const end = currentPage * postsPerPage;
+
+            const visiblePosts = posts.slice(start, end);
+
+            visiblePosts.forEach((post, postIndex) => {
+
+                const card = document.createElement("div");
+                card.className = "post-card";
+                card.dataset.postId = post.id;
+
+                let commentsHtml = post.comments.map((comment, commentIndex) =>
+                    renderComment(comment, postIndex, commentIndex)
+                ).join('');
+
+                const reportEmail = "ninjafjanten1@gmail.com";
+
+                const mailtoLink = `mailto:${reportEmail}?subject=Report&body=` +
+                    encodeURIComponent(
+                        `Reporting User:\n\n` +
+                        `Name: ${post.name}\n` +
+                        `Username: ${post.username}\n` +
+                        `User ID: ${post.userId || post.id}\n` +
+                        `Post ID: ${post.id}\n\n` +
+                        `Reason:\n[Please write the reason here]`
+                    );
+
+                card.innerHTML = `
+<div class="post-header">
+    ${post.userType === "enatist" ? "" : `
+    <div class="post-avatar">
+        <a href="./${getProfileUrl(post.username, post.userType)}">
+            <img src="${post.avatar}" alt="">
+        </a>
+    </div>
+    `}
+    <div class="post-meta">
+        <h3>
+            <a href="./${getProfileUrl(post.username, post.userType)}" style="color:inherit;text-decoration:none;" target="_blank">
+            ${post.name}
+            </a>
+
+            <button class="follow-btn"
+                data-user-id="${post.user_id}"
+                data-username="${post.username}"
+                style="margin-left:16px; font-size:13px; padding:4px 10px; border-radius:12px; background:#1e3a5f; color:var(--accent-gold); border:1px solid var(--accent-gold); cursor:pointer;">
+                ...
+            </button>
+
+            <a href="${mailtoLink}" class="report-btn" style="margin-left:15px;font-size:14px;color:red;">Report</a>
+
+            ${(window.currentUserRole || "").toLowerCase() === "founder" ? `
+                <button onclick="deletePost('${post.id}')"
+                style="margin-left:10px;color:#ff4444;background:none;border:none;cursor:pointer;">
+                🗑 Delete
+                </button>
+            ` : ""}
+
+        </h3>
+
+        <span>
+            <span class="category-badge">${post.main_category}</span>
+            ${post.title} • ${post.badge || ""} • ${post.time}
+        </span>
+    </div>
+</div>
+
+<div class="post-content">${post.content.replace(/\n/g, "<br>")}</div>
+
+<div class="stats">⬆ ${post.upvotes || 0} • ⬇ ${post.downvotes || 0} • 💬 ${post.comments.length}</div>
+
+<div class="post-actions">
+    <button class="action-btn" onclick="votePost(${postIndex}, 1)">⬆ Upvote</button>
+    <button class="action-btn" onclick="votePost(${postIndex}, -1)">⬇ Downvote</button>
+    <button class="action-btn" onclick="toggleComments(${postIndex})">💬 Comment</button>
+</div>
+
+<div class="comments-section" id="comments-${post.id}">
+    ${commentsHtml}
+
+    <div class="comment-form" id="comment-form-${post.id}">
+        ${window.currentUserType === "enatist" ? "" : `
+        <div class="comment-avatar">
+            <img src="${document.getElementById("profileAvatar")?.src || ""}">
+        </div>
+        `}
+
+        <input type="text" class="comment-input" id="comment-input-${post.id}" placeholder="Write a comment..." />
+        <button class="send-comment-btn" disabled onclick="addComment(${postIndex})">Send</button>
+    </div>
+</div>
+`;
+
+                feed.appendChild(card);
+
+                const input = document.getElementById(`comment-input-${post.id}`);
+                const sendBtn = card.querySelector(`#comment-form-${post.id} .send-comment-btn`);
+
+                if (input && sendBtn) {
+                    input.addEventListener('input', () => {
+                        sendBtn.disabled = input.value.trim() === '';
+                    });
+                }
+
+            });
+
+            // LOAD MORE BUTTON
+            if (posts.length > end) {
+
+                const loadMoreBtn = document.createElement("button");
+                loadMoreBtn.textContent = "Läs mer";
+                loadMoreBtn.className = "post-btn";
+                loadMoreBtn.style.margin = "20px auto";
+                loadMoreBtn.style.display = "block";
+
+                loadMoreBtn.onclick = () => {
+                    currentPage++;
+                    renderFeed();
+                };
+
+                feed.appendChild(loadMoreBtn);
+            }
+            initFollowButtons();
+        }
+       renderFeed();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="sv">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enatist profil</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="./js/supabase.js"></script>
+    <style>
+        body {
+            font-family: system-ui;
+            background: #003578;
+            color: #ffc200;
+            margin: 0;
+            padding: 40px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .profile-card {
+            background: #0b2a57;
+            padding: 30px;
+            border-radius: 12px;
+            width: 420px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, .4);
+            position: relative;
+        }
+
+        .avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #ffc200;
+            margin-bottom: 15px;
+        }
+
+        .role {
+            background: #ffc200;
+            color: #003578;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-bottom: 10px;
+            width: max-content;
+            margin: auto;
+        }
+
+        .username {
+            opacity: .8;
+            margin-bottom: 15px;
+        }
+
+        .bio {
+            background: #082148;
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        .meta {
+            margin-top: 15px;
+            font-size: 13px;
+            opacity: .8;
+        }
+
+        .edit-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #ffc200;
+            color: #003578;
+            border: none;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            font-size: 18px;
+            cursor: pointer;
+            display: none;
+        }
+
+        .logout-btn {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: #ffc200;
+            color: #003578;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            display: none;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, .6);
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: #0b2a57;
+            padding: 25px;
+            border-radius: 10px;
+            width: 360px;
+        }
+
+        .modal-content input,
+        .modal-content textarea {
+            width: stretch;
+            padding: 8px;
+            margin: 6px 0 12px;
+            border-radius: 6px;
+            border: none;
+        }
+
+        .modal-content button {
+            background: #ffc200;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 15px;
+            background: #082148;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .stats b {
+            font-size: 18px;
+            color: #ffc200;
+        }
+        /* Modal background */
+#followModal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.65);
+    backdrop-filter: blur(6px);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+/* Modal box */
+#followModal .modal-content {
+    background: linear-gradient(145deg,#0b2a57,#081f40);
+    border-radius: 14px;
+    width: 420px;
+    max-height: 520px;
+    padding: 22px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+    border: 1px solid rgba(255,194,0,0.15);
+    animation: modalPop .25s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Title */
+#followTitle{
+    color:#ffc200;
+    font-size:18px;
+    margin-bottom:12px;
+    text-align:center;
+}
+
+/* User list */
+#followList{
+    overflow-y:auto;
+    margin-top:10px;
+}
+
+/* Each user row */
+#followList div{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:10px;
+    border-radius:8px;
+    transition:all .2s ease;
+}
+
+/* Hover effect */
+#followList div:hover{
+    background:#0e376e;
+}
+
+/* User link */
+#followList a{
+    color:#ffc200;
+    text-decoration:none;
+    font-weight:500;
+}
+
+
+
+/* Scrollbar */
+#followList::-webkit-scrollbar{
+    width:6px;
+}
+#followList::-webkit-scrollbar-thumb{
+    background:#ffc200;
+    border-radius:10px;
+}
+
+/* Close button */
+#followModal button{
+    margin-top:14px;
+    background:#ffc200;
+    border:none;
+    padding:8px 14px;
+    border-radius:6px;
+    cursor:pointer;
+    font-weight:600;
+    color:#003578;
+    transition:all .2s ease;
+}
+
+#followModal button:hover{
+    transform:scale(1.05);
+}
+
+/* Modal animation */
+@keyframes modalPop{
+    from{
+        opacity:0;
+        transform:scale(.9) translateY(20px);
+    }
+    to{
+        opacity:1;
+        transform:scale(1) translateY(0);
+    }
+}
+
+        .forum-link {
+            position: absolute;
+            top: 10%;
+            left: 10%;
+            background-color: transparent;
+            background: #0c2a55;
+            color: #ffc334;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, .4);
+        }
+        .follow-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:10px;
+    border-radius:8px;
+}
+
+.follow-btn{
+    background:#ffc200;
+    border:none;
+    padding:4px 10px;
+    border-radius:6px;
+    cursor:pointer;
+    font-size:12px;
+    font-weight:600;
+}
+
+.follow-btn:hover{
+    transform:scale(1.05);
+}
+        #viewAllPostsBtn{
+            background: #ffc200;
+            color: #003578;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+
+<button class="forum-link" onclick="history.back()">
+    Inlägg
+</button>
+
+<div class="profile-card">
+    <button id="logoutBtn" class="logout-btn">Logga ut</button>
+    <button id="editBtn" class="edit-btn">✏️</button>
+    <!-- <img id="avatarz" class="avatara" src="" alt="Profilbild"> -->
+    <div id="role" class="role"></div>
+    <h1 id="profileName">Laddar...</h1>
+    <div id="username" class="username"></div>
+            <button id="followProfileBtn" class="follow-btn" style="margin-top:8px;display:none;">
+        Follow
+        </button>
+    <div id="bio" class="bio"></div>
+    <div class="stats">
+        <div><b id="postCount">0</b><br>Inlägg</div>
+        <div><b id="points">0</b><br>Poäng</div>
+        <div>
+            <img id="badgeImg" style="width:24px;vertical-align:middle;display:none;">
+            <b id="badgeText"></b><br>Märke
+        </div>
+    </div>
+    <div class="meta">Medlem sedan: <span id="created"></span></div>
+    <div class="meta">Registreringsdatum: <span id="joining"></span></div>
+            <span onclick="openFollowModal('followers')" style="cursor:pointer">
+            <strong id="followersCount">0</strong> följare
+        </span>
+
+        <span style="color:var(--gray);">•</span>
+
+        <span onclick="openFollowModal('following')" style="cursor:pointer">
+            <strong id="followingCount">0</strong> följer
+        </span>
+        <div style="margin-top: 16px;">
+            <a id="viewAllPostsBtn" href="#" class="profile-btn">
+                Visa alla inlägg
+            </a>
+        </div>
+    </div>
+
+<div id="editModal" class="modal">
+    <div class="modal-content">
+        <h2>Redigera profil</h2>
+        <label>Fullständigt namn</label>
+        <input id="editFullName" type="text">
+        <label>Användarnamn</label>
+        <input id="editUsername" type="text">
+        <label>Biografi</label>
+        <textarea id="editBio"></textarea>
+        <button id="saveBtn">Spara</button>
+            <button id="closeedit">close</button>
+
+    </div>
+</div>
+<div id="followModal" class="modal">
+    <div class="modal-content">
+        <h3 id="followTitle">Followers</h3>
+        <div id="followList"></div>
+        <button onclick="closeFollowModal()">Close</button>
+    </div>
+</div>
+
+    <script>
+        let currentProfile = null;
+        let isVisitor = false
+        // let user = null;   // ADD THIS
+
+
+        // Generates placeholder avatar if missing
+        function generateAvatar(username) {
+            const letter = username.charAt(0).toUpperCase();
+            const colors = ["#FF6B6B", "#6BCB77", "#4D96FF", "#FFD93D", "#845EC2", "#FF9671", "#00C9A7", "#0081CF", "#B39CD0", "#F9F871"];
+            const bg = colors[username.charCodeAt(0) % colors.length];
+            const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'>
+        <rect width='100%' height='100%' fill='${bg}'/>
+        <text x='50%' y='55%' font-size='60' text-anchor='middle' fill='white' font-family='Arial' dy='.3em'>${letter}</text>
+    </svg>`;
+            return "data:image/svg+xml;base64," + btoa(svg);
+        }
+
+        async function loadProfile() {
+            const supabaseClient = window.supabaseClient;
+            const params = new URLSearchParams(window.location.search);
+            let username = params.get("user");
+             isVisitor = false;
+             let user = null;
+
+            // If no ?user= then load logged-in user
+            if (!username) {
+                const { data: sessionData } = await supabaseClient.auth.getUser();
+                user = sessionData.user;
+
+                if (!user) {
+                    window.location.href = "/";
+                    return;
+                }
+
+                const { data } = await supabaseClient
+                    .from("enatist_profiles")
+                    .select("username")
+                    .eq("id", user.id)
+                    .single();
+
+                username = data.username;
+
+                // show owner buttons
+                document.getElementById("editBtn").style.display = "block";
+                document.getElementById("logoutBtn").style.display = "block";
+                document.getElementById("viewAllPostsBtn").style.display ="block";
+
+            } else {
+                // visitor mode
+                isVisitor = true;
+                document.getElementById("editBtn").style.display = "none";
+                document.getElementById("logoutBtn").style.display = "none";
+            }
+
+            // Load profile from enatist_profiles
+            const { data, error } = await supabaseClient
+                .from("enatist_profiles")
+                .select("*")
+                .eq("username", username)
+                .maybeSingle();
+
+            if (error || !data) {
+                document.getElementById("profileName").textContent = "Profile not found";
+                return;
+            }
+
+            // Approval check
+            if (data.approved === false) {
+                window.location.href = "../approval-pending.html";
+                return;
+            }
+
+            currentProfile = data;
+             const followBtn = document.getElementById("followProfileBtn");
+
+            if (isVisitor) {
+                followBtn.style.display = "inline-block";
+                initProfileFollowButton();
+            }
+            
+            const postsBtn = document.getElementById("viewAllPostsBtn");
+            postsBtn.href = `../forum.html?user=${data.username}`;
+
+            // Update UI
+            document.getElementById("profileName").textContent = data.full_name || data.username;
+            document.getElementById("username").textContent = "@" + data.username;
+            document.getElementById("role").textContent = data.role || "Enatist";
+            document.getElementById("bio").textContent = data.bio || "No bio yet";
+            document.getElementById("postCount").textContent =
+                data.post_count || 0;
+
+            document.getElementById("points").textContent =
+                data.contribution_points || 0;
+
+            const badgeImg = document.getElementById("badgeImg");
+                const badgeText = document.getElementById("badgeText");
+
+                if (data.badge) {
+
+                    let badgePath = "";
+
+                    if (data.badge === "Brown") badgePath = "../images/brown.png";
+                    if (data.badge === "Silver") badgePath = "../images/silver.png";
+                    if (data.badge === "Gold") badgePath = "../images/gold.png";
+                    if (data.badge === "Diamond") badgePath = "../images/diamond.png";
+                    if (data.badge === "Platinum") badgePath = "../images/platinum.png";
+
+                    badgeImg.src = badgePath;
+                    badgeImg.style.display = "inline";
+
+                    badgeText.textContent = data.badge;
+
+                } else {
+
+                    badgeImg.style.display = "none";
+                    badgeText.style.display = "none";
+
+                }
+
+            let avatar = data.avatar_url;
+            if (!avatar) {
+                avatar = generateAvatar(data.username);
+                await supabaseClient
+                    .from("enatist_profiles")
+                    .update({ avatar_url: avatar })
+                    .eq("id", data.id);
+            }
+            // document.getElementById("avatar").src = avatar;
+
+            if (data.created_at) {
+                const duration = getMembershipDuration(data.created_at);
+                document.getElementById("created").textContent = "Enatist for " + duration;
+            }
+            if (data.created_at) {
+                document.getElementById("joining").textContent = new Date(data.created_at).toLocaleDateString();
+            }
+
+            // Show buttons only if owner
+            const { data: { user: loggedUser } } = await supabaseClient.auth.getUser();
+            if (!isVisitor && loggedUser && loggedUser.id === data.id) {
+                document.getElementById("editBtn").style.display = "block";
+                document.getElementById("logoutBtn").style.display = "block";
+            }
+            await loadFollowCounts();
+        }
+        async function initProfileFollowButton() {
+
+    const supabaseClient = window.supabaseClient;
+    const followBtn = document.getElementById("followProfileBtn");
+
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (!user) return;
+
+    const followerId = user.id;
+    const followedId = currentProfile.id;
+
+    const { data: existing } = await supabaseClient
+        .from("follows")
+        .select("*")
+        .eq("follower_id", followerId)
+        .eq("followed_id", followedId)
+        .maybeSingle();
+
+    followBtn.textContent = existing ? "Unfollow" : "Follow";
+
+    followBtn.onclick = async () => {
+
+        await toggleFollow(followedId);
+
+        const { data: check } = await supabaseClient
+            .from("follows")
+            .select("*")
+            .eq("follower_id", followerId)
+            .eq("followed_id", followedId)
+            .maybeSingle();
+
+        followBtn.textContent = check ? "Unfollow" : "Follow";
+
+        loadFollowCounts();
+    };
+}
+        async function loadFollowCounts() {
+            const supabaseClient = window.supabaseClient;
+
+                    if (!currentProfile) return;
+
+                    try {
+
+                        // Followers (people who follow this profile)
+                        const { count: followers } = await supabaseClient
+                            .from('follows')
+                            .select('*', { count: 'exact', head: true })
+                            .eq('followed_id', currentProfile.id);
+
+                        // Following (people this profile follows)
+                        const { count: following } = await supabaseClient
+                            .from('follows')
+                            .select('*', { count: 'exact', head: true })
+                            .eq('follower_id', currentProfile.id);
+
+                        document.getElementById('followersCount').textContent = followers || 0;
+                        document.getElementById('followingCount').textContent = following || 0;
+
+                    } catch (err) {
+
+                        console.error("Could not load follow counts:", err);
+
+                        document.getElementById('followersCount').textContent = '—';
+                        document.getElementById('followingCount').textContent = '—';
+                    }
+                }
+  
+async function openFollowModal(type) {
+
+    const supabaseClient = window.supabaseClient;
+
+    document.getElementById("followModal").style.display = "flex";
+    document.getElementById("followList").innerHTML = "Loading...";
+
+    let column = type === "followers" ? "followed_id" : "follower_id";
+    let selectUser = type === "followers" ? "follower_id" : "followed_id";
+
+    document.getElementById("followTitle").textContent =
+        type === "followers" ? "Followers" : "Following";
+
+    const { data } = await supabaseClient
+        .from("follows")
+        .select(selectUser)
+        .eq(column, currentProfile.id);
+
+    if (!data || !data.length) {
+        document.getElementById("followList").innerHTML = "No users";
+        return;
+    }
+
+    const ids = data.map(r => r[selectUser]);
+
+    const { data: profiles } = await supabaseClient
+        .from("enatist_profiles")
+        .select("id, username, full_name")
+        .in("id", ids);
+
+const list = profiles.map(p => {
+
+                const showButton = !isVisitor
+                ? `<button class="follow-btn" onclick="toggleFollow('${p.id}')">Unfollow</button>`
+                : "";
+
+                return `
+                <div class="follow-row">
+
+                    <a href="./members/profile.html?user=${p.username}">
+                    ${p.full_name || p.username}
+                    </a>
+
+                    ${showButton}
+
+                </div>
+                `;
+
+            }).join("");
+
+document.getElementById("followList").innerHTML = list;
+}
+async function toggleFollow(targetUserId){
+
+const supabaseClient = window.supabaseClient;
+
+const { data: { user } } = await supabaseClient.auth.getUser();
+if(!user) return;
+
+const followerId = user.id;
+
+const { data: existing } = await supabaseClient
+.from("follows")
+.select("*")
+.eq("follower_id", followerId)
+.eq("followed_id", targetUserId)
+.maybeSingle();
+
+if(existing){
+
+// UNFOLLOW
+await supabaseClient
+.from("follows")
+.delete()
+.eq("follower_id", followerId)
+.eq("followed_id", targetUserId);
+
+}else{
+
+// FOLLOW
+await supabaseClient
+.from("follows")
+.insert({
+follower_id: followerId,
+followed_id: targetUserId
+});
+
+}
+
+loadFollowCounts();
+
+}
+function closeFollowModal(){
+    document.getElementById("followModal").style.display = "none";
+}
+        // Edit modal
+        document.getElementById("editBtn").onclick = () => {
+            document.getElementById("editFullName").value = currentProfile.full_name || "";
+            document.getElementById("editUsername").value = currentProfile.username;
+            document.getElementById("editBio").value = currentProfile.bio || "";
+            document.getElementById("editModal").style.display = "flex";
+        };
+        document.getElementById("closeedit").onclick = () =>{
+            document.getElementById("editModal").style.display = "none";
+
+        }
+
+        // Save edits
+        document.getElementById("saveBtn").onclick = async () => {
+    const supabaseClient = window.supabaseClient;
+
+    // Get values + clean them
+    const fullNameInput = document.getElementById("editFullName").value.trim();
+    const usernameInput = document.getElementById("editUsername").value.trim();
+    const bio         = document.getElementById("editBio").value.trim();
+
+    // ────────────────────────────────────────────────
+    //  1. Basic validation
+    // ────────────────────────────────────────────────
+    if (fullNameInput.length > 50) {
+        alert("Fullständigt namn får max vara 50 tecken långt.");
+        return;
+    }
+
+    if (usernameInput.length > 50) {
+        alert("Användarnamn får max vara 50 tecken långt.");
+        return;
+    }
+
+    if (usernameInput.length === 0) {
+        alert("Användarnamn får inte vara tomt.");
+        return;
+    }
+
+    // Optional: stricter username format (letters, numbers, _, ., -)
+    if (!/^[a-zA-Z0-9_.-]+$/.test(usernameInput)) {
+        alert("Användarnamn får bara innehålla bokstäver, siffror, understreck (_), punkt (.) och bindestreck (-).");
+        return;
+    }
+
+    // ────────────────────────────────────────────────
+    //  2. Prepare update object
+    // ────────────────────────────────────────────────
+    const updateData = { bio };
+    const now = new Date().toISOString();
+
+    let usernameChanged = false;
+    let fullNameChanged  = false;
+
+    // Username change?
+    if (usernameInput !== currentProfile.username) {
+        usernameChanged = true;
+
+        if (currentProfile.last_username_changed_at) {
+            const last = new Date(currentProfile.last_username_changed_at);
+            const daysPassed = (Date.now() - last.getTime()) / (1000 * 60 * 60 * 24);
+
+            if (daysPassed < 30) {
+                const remaining = Math.ceil(30 - daysPassed);
+                alert(`Du kan byta användarnamn igen om ${remaining} dag${remaining === 1 ? '' : 'ar'}.`);
+                return;
+            }
+        }
+
+        updateData.username = usernameInput;
+        updateData.last_username_changed_at = now;
+    }
+
+    // Full name (nickname) change?
+    const currentFullName = currentProfile.full_name || "";
+    if (fullNameInput !== currentFullName) {
+        fullNameChanged = true;
+
+        if (currentProfile.last_fullname_changed_at) {
+            const last = new Date(currentProfile.last_fullname_changed_at);
+            const daysPassed = (Date.now() - last.getTime()) / (1000 * 60 * 60 * 24);
+
+            if (daysPassed < 7) {
+                const remaining = Math.ceil(7 - daysPassed);
+                alert(`Du kan byta smeknamn/fullständigt namn igen om ${remaining} dag${remaining === 1 ? '' : 'ar'}.`);
+                return;
+            }
+        }
+
+        updateData.full_name = fullNameInput || null; // allow clearing
+        updateData.last_fullname_changed_at = now;
+    }
+
+    // Nothing changed → no need to save
+    if (!usernameChanged && !fullNameChanged && bio === (currentProfile.bio || "")) {
+        alert("Inga ändringar att spara.");
+        return;
+    }
+
+    // ────────────────────────────────────────────────
+    //  3. Save to Supabase
+    // ────────────────────────────────────────────────
+    const { error } = await supabaseClient
+        .from("enatist_profiles")
+        .update(updateData)
+        .eq("id", currentProfile.id);
+
+    if (error) {
+        console.error("Update failed:", error);
+        alert("Uppdateringen misslyckades: " + (error.message || "Okänt fel"));
+        return;
+    }
+
+    alert("Profilen har uppdaterats!");
+    location.reload();   // ← better than location.href = "" (reloads current page with new query params if any)
+};
+        function getMembershipDuration(createdAt) {
+            const joinDate = new Date(createdAt);
+            const now = new Date();
+
+            const diffTime = now - joinDate;
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+            if (diffDays < 30) {
+                return diffDays + " days";
+            }
+
+            const diffMonths = Math.floor(diffDays / 30);
+            if (diffMonths < 12) {
+                return diffMonths + " months";
+            }
+
+            const diffYears = Math.floor(diffMonths / 12);
+            return diffYears + " years";
+        }
+
+        // Logout
+        document.getElementById("logoutBtn").onclick = async () => {
+            const supabaseClient = window.supabaseClient;
+            await supabaseClient.auth.signOut();
+            window.location.href = "/";
+        };
+
+        document.addEventListener("DOMContentLoaded", loadProfile);
+    </script>
+</body>
+
+</html>

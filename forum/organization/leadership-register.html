@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Ledarskapsregister</title>
+
+    <link rel="stylesheet" href="../css/org-theme.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../js/supabase.js"></script>
+
+</head>
+
+<body>
+    <a href="./index.html" class="home-icon" title="Gå till startsidan">
+        🏠
+    </a>
+
+    <div class="container">
+
+        <h2>Registrering för ledning</h2>
+
+        <form id="registerForm">
+
+            <input id="username" placeholder="Användarnamn" required autocomplete="username">
+
+            <input id="email" type="email" placeholder="E-post" required autocomplete="email">
+
+            <input id="password" type="password" placeholder="Lösenord" required autocomplete="new-password">
+
+            <button type="submit">Registrera</button>
+
+        </form>
+
+        <p class="leader-link-container">
+            <a href="./leadership-login.html" class="leader-link">Har du redan ett konto? Logga in som ledning</a>
+        </p>
+
+    </div>
+
+    <script>
+
+        document.getElementById("registerForm").addEventListener("submit", registerLeadership)
+
+        async function registerLeadership(e) {
+
+            e.preventDefault()
+
+            const username = document.getElementById("username").value.trim()
+            const email = document.getElementById("email").value.trim()
+            const password = document.getElementById("password").value.trim()
+
+            const supabase = window.supabaseClient
+
+            try {
+
+                /* STEP 1: Create Auth User */
+
+                const { data: authData, error: authError } = await supabase.auth.signUp({
+                    email: email,
+                    password: password
+                })
+
+                if (authError) {
+                    alert(authError.message)
+                    return
+                }
+
+                /* STEP 2: Save Organization Profile */
+
+                const { error: profileError } = await supabase
+                    .from("organization_users")
+                    .insert([
+                        {
+                            id: authData.user.id,
+                            username: username,
+                            email: email,
+                            role: "leadership",
+                            approved: false
+                            
+                        }
+                    ])
+
+                if (profileError) {
+                    alert(profileError.message)
+                    return
+                }
+
+                alert("Ledarskap registrerats framgångsrikt")
+
+                location.href = "leadership-login.html"
+
+            } catch (err) {
+
+                alert("Något gick fel")
+
+            }
+
+        }
+
+    </script>
+
+</body>
+
+</html>

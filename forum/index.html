@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enatistisk gemenskap</title>
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@600;700&display=swap"
+        rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #00264d;
+            --accent: #ffc200;
+            --light: rgb(188, 215, 255);
+            --dark: #1f2937;
+            --card: #00264d;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            background: var(--light);
+            color: var(--dark);
+            line-height: 1.6;
+        }
+
+        header {
+            background: var(--primary);
+            color: white;
+            padding: 16px 5%;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .header-wrap {
+            max-width: 1200px;
+            margin: auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--accent);
+            letter-spacing: -0.5px;
+        }
+
+        nav ul {
+            display: flex;
+            gap: 28px;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.25s;
+        }
+
+        nav a:hover {
+            color: var(--accent);
+        }
+
+        .hero {
+            background: #00264d;
+            color: var(--accent);
+            text-align: center;
+            padding: 140px 5% 120px;
+            min-height: 70vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .hero h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(2.8rem, 7vw, 4.5rem);
+            margin: 0 0 1.2rem;
+            line-height: 1.1;
+        }
+
+        .hero p {
+            max-width: 720px;
+            margin: 0 auto 2.2rem;
+            font-size: 1.25rem;
+            color: #f0f4ff;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 14px 32px;
+            border-radius: 50px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            margin: 12px 8px;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: var(--primary);
+        }
+
+        .btn-primary:hover {
+            background: #ffdb4d;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(255, 194, 0, 0.3);
+        }
+
+        .btn-outline {
+            border: 2px solid var(--accent);
+            color: var(--accent);
+        }
+
+        .btn-outline:hover {
+            background: var(--accent);
+            color: var(--primary);
+            transform: translateY(-3px);
+        }
+
+        section {
+            padding: 90px 5%;
+            text-align: center;
+        }
+
+        .container {
+            max-width: 1180px;
+            margin: 0 auto;
+        }
+
+        h2 {
+            font-size: 2.4rem;
+            color: var(--primary);
+            margin-bottom: 1.6rem;
+            font-weight: 700;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            margin-top: 50px;
+        }
+
+        .card {
+            background: var(--card);
+            padding: 32px 24px;
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.07);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12);
+        }
+
+        .card h3 {
+            margin: 0 0 1rem;
+            color: var(--accent);
+            font-size: 1.4rem;
+        }
+
+        .card p {
+            color: var(--accent);
+        }
+
+        table {
+            width: 100%;
+            max-width: 720px;
+            margin: 40px auto 0;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 14px 16px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        th {
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+        }
+
+        footer {
+            background: var(--primary);
+            color: var(--accent);
+            text-align: center;
+            padding: 60px 5% 40px;
+        }
+
+        footer a {
+            color: var(--accent);
+            text-decoration: none;
+            margin: 0 14px;
+            font-weight: 500;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .header-wrap {
+                flex-direction: column;
+                gap: 20px;
+            }
+
+            nav ul {
+                justify-content: center;
+                gap: 10px;
+            }
+
+            .hero {
+                padding: 100px 5% 80px;
+            }
+
+            h2 {
+                font-size: 2rem;
+            }
+            /* Make tables scrollable on small screens */
+            table {
+                width: 100%;
+                max-width: 720px;
+                margin: 40px auto 0;
+                border-collapse: collapse;
+                overflow-x: auto; /* add this */
+                display: block; /* make table block for scrolling */
+            }
+
+            /* Optional: add horizontal scrolling wrapper */
+            .table-wrapper {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch; /* smooth scrolling on iOS */
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="header-wrap">
+            <div class="logo">Enat Sverige Forum</div>
+            <nav>
+                <ul>
+                    <li><a href="#">Hem</a></li>
+                    <li><a href="./login-member.html">Medlemmar</a></li>
+                    <li><a href="./login-enatist.html">Enatister</a></li>
+                    <li><a href="./organization/index.html">Organisation</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <section class="hero">
+        <h1>Anslut • Lär • Bidra</h1>
+        <p>
+            Enatist är en strukturerad kunskapscommunity där medlemmar ställer frågor,
+            Enatister delar expertis, och organisationer styr ekosystemet.
+            Genom diskussioner, bidrag och gemenskapsdeltagande växer kunskapen
+            och bidragsgivare erkänns.
+        </p>
+
+        <div>
+            <a class="btn btn-primary" href="./register-member.html">Gå med som medlem</a>
+            <a class="btn btn-outline" href="./register-enatist.html">Bli Enatist</a>
+        </div>
+    </section>
+
+
+    <section>
+        <div class="container">
+            <h2>Om Enatist-systemet</h2>
+
+            <p>
+                Enatist är byggt som ett strukturerat kunskapsekosystem där olika
+                roller samarbetar för att skapa meningsfulla diskussioner och insikter.
+            </p>
+
+            <p>
+                Medlemmar deltar genom att ställa frågor, dela erfarenheter
+                och bidra till diskussioner. Enatister bidrar med djupare
+                kunskap och insikter. Organisationer hanterar plattformens
+                struktur, moderering och gemenskapsutveckling.
+            </p>
+
+            <p>
+                Systemet belönar aktivt deltagande genom bidragspoäng,
+                rankningsprogression och gemenskapsbadges.
+            </p>
+        </div>
+    </section>
+
+
+    <section>
+        <div class="container">
+            <h2>Hur communityn fungerar</h2>
+
+            <div class="grid">
+
+                <div class="card">
+                    <h3>Tråddiskussioner</h3>
+                    <p>
+                        Medlemmar och Enatister kan skapa diskussionstrådar för att ställa
+                        frågor, dela insikter eller utforska idéer. Trådar utgör kärnan
+                        i kunskapsutbytet på plattformen.
+                    </p>
+                </div>
+
+                <div class="card">
+                    <h3>Kategoribaserade samtal</h3>
+                    <p>
+                        Diskussioner organiseras i strukturerade kategorier som filosofi,
+                        kunskap, erfarenheter och inlärningsämnen. Detta gör det enklare
+                        att hitta och följa samtal.
+                    </p>
+                </div>
+
+                <div class="card">
+                    <h3>Gemenskapsinteraktion</h3>
+                    <p>
+                        Användare kan gilla inlägg, kommentera, svara på diskussioner och
+                        interagera med andra bidragsgivare för att bygga samarbetsinriktade samtal.
+                    </p>
+                </div>
+
+                <div class="card">
+                    <h3>Organisationsvägledning</h3>
+                    <p>
+                        Organisationsledningen hanterar plattformens ekosystem,
+                        säkerställer kvalitetsdiskussioner och introducerar
+                        gemenskapsinitiativ och evenemang.
+                    </p>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+
+    <section>
+        <div class="container">
+            <h2>Badge-system för inlägg</h2>
+
+            <p>
+                Medlemmar tjänar badges baserat på antalet diskussionstrådar de skapar.
+                Dessa badges representerar nivån av bidrag en medlem har gjort till communityn.
+            </p>
+
+            <table>
+                <tr>
+                    <th>Totalt antal inlägg</th>
+                    <th>Badge</th>
+                    <th>Erkännandepoäng</th>
+                </tr>
+
+                <tr>
+                    <td>0 – 9 inlägg</td>
+                    <td>Bronsbadge</td>
+                    <td>5 poäng</td>
+                </tr>
+
+                <tr>
+                    <td>10 – 24 inlägg</td>
+                    <td>Silverbadge</td>
+                    <td>10 poäng</td>
+                </tr>
+
+                <tr>
+                    <td>25 – 49 inlägg</td>
+                    <td>Guldbadge</td>
+                    <td>20 poäng</td>
+                </tr>
+
+                <tr>
+                    <td>50 – 99 inlägg</td>
+                    <td>Diamantbadge</td>
+                    <td>Elitbidragsgivare</td>
+                </tr>
+
+                <tr>
+                    <td>100+ inlägg</td>
+                    <td>Platinabadge</td>
+                    <td>Topp community-bidragsgivare</td>
+                </tr>
+            </table>
+
+            <p>
+                När medlemmar skapar fler inlägg och hjälper andra genom diskussioner,
+                uppgraderas deras badge-nivå automatiskt i systemet.
+            </p>
+        </div>
+    </section>
+
+
+    <section>
+        <div class="container">
+            <h2>Communityns badge-system för inlägg</h2>
+
+            <p>
+                Enatist-communityn erkänner aktiva bidragsgivare genom ett
+                badge-system baserat på antalet diskussionstrådar en medlem skapar.
+                När medlemmar delar kunskap och deltar i samtal uppgraderas deras badge-nivå automatiskt.
+            </p>
+
+            <div class="grid">
+
+                <div class="card">
+                    <img src="./images/brown.png" alt="Bronsbadge" width="80">
+                    <h3>Bronsbadge</h3>
+                    <p>
+                        Tilldelas nya bidragsgivare som har skapat
+                        <strong>0 – 9 inlägg</strong> i communityn.
+                    </p>
+                </div>
+
+                <div class="card">
+                    <img src="./images/silver.png" alt="Silverbadge" width="80">
+                    <h3>Silverbadge</h3>
+                    <p>
+                        Förtjänas av medlemmar som har skapat
+                        <strong>10 – 24 inlägg</strong> och aktivt deltar i diskussioner.
+                    </p>
+                </div>
+
+                <div class="card">
+                    <img src="./images/gold.png" alt="Guldbadge" width="80">
+                    <h3>Guldbadge</h3>
+                    <p>
+                        Ges till engagerade medlemmar som har skapat
+                        <strong>25 – 49 inlägg</strong> och bidrar med värdefulla insikter.
+                    </p>
+                </div>
+
+                <div class="card">
+                    <img src="./images/diamond.png" alt="Diamantbadge" width="80">
+                    <h3>Diamantbadge</h3>
+                    <p>
+                        Erkänner mycket aktiva bidragsgivare med
+                        <strong>50 – 99 inlägg</strong> i communityn.
+                    </p>
+                </div>
+
+                <div class="card">
+                    <img src="./images/platinum.png" alt="Platinabadge" width="80">
+                    <h3>Platinabadge</h3>
+                    <p>
+                        Den högsta badgen som tilldelas elitmedlemmar som har skapat
+                        <strong>100+ inlägg</strong> och betydande stödjer communityn.
+                    </p>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+
+    <section>
+        <div class="container">
+            <h2>Communityns rankningssystem</h2>
+
+            <p>
+                Enatist-communityn använder ett strukturerat rankningssystem för att erkänna
+                aktiva bidragsgivare. Medlemmar tjänar badges baserat på antalet diskussionsinlägg de skapar.
+                Varje badge ger bidragspoäng.
+            </p>
+
+            <p>
+                När medlemmar publicerar fler inlägg låser de upp högre badges som ger
+                högre bidragspoäng. De totala bidragspoängen avgör en medlems position
+                i community-rankningen.
+            </p>
+
+            <table>
+                <tr>
+                    <th>Inlägg</th>
+                    <th>Badge</th>
+                    <th>Bidragspoäng</th>
+                </tr>
+
+                <tr>
+                    <td>0 – 9 inlägg</td>
+                    <td>Bronsbadge</td>
+                    <td>5 poäng</td>
+                </tr>
+
+                <tr>
+                    <td>10 – 24 inlägg</td>
+                    <td>Silverbadge</td>
+                    <td>10 poäng</td>
+                </tr>
+
+                <tr>
+                    <td>25 – 49 inlägg</td>
+                    <td>Guldbadge</td>
+                    <td>20 poäng</td>
+                </tr>
+
+                <tr>
+                    <td>50 – 99 inlägg</td>
+                    <td>Diamantbadge</td>
+                    <td>25 poäng</td>
+                </tr>
+
+                <tr>
+                    <td>100+ inlägg</td>
+                    <td>Platinabadge</td>
+                    <td>35 poäng</td>
+                </tr>
+            </table>
+
+            <p>
+                Plattformen beräknar automatiskt bidragspoäng och visar en community-leaderboard.
+                Medlemmar med högre poäng visas högre upp i rankningen.
+            </p>
+
+            <p>
+                Medlemmen med högst bidragspoäng innehar
+                <strong>Rank #1-positionen</strong> i communityn.
+            </p>
+
+        </div>
+    </section>
+
+
+    <section>
+        <div class="container">
+            <h2>Community-kategorier</h2>
+
+            <div class="grid">
+
+                <div class="card">
+                    <h3>Kunskap</h3>
+                    <p>
+                        Diskussioner fokuserade på lärande, förståelse
+                        och delning av information inom olika ämnen.
+                    </p>
+                </div>
+
+                <div class="card">
+                    <h3>Erfarenheter</h3>
+                    <p>
+                        Medlemmar delar personliga berättelser, resor
+                        och lärdomar från verkliga erfarenheter.
+                    </p>
+                </div>
+
+                <div class="card">
+                    <h3>Idéer & Diskussioner</h3>
+                    <p>
+                        En plats för öppna samtal där medlemmar
+                        utbyter perspektiv och utforskar begrepp.
+                    </p>
+                </div>
+
+                <div class="card">
+                    <h3>Community-uppdateringar</h3>
+                    <p>
+                        Officiella uppdateringar, tillkännagivanden och vägledning
+                        från organisationsledningen.
+                    </p>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+
+    <section>
+        <div class="container">
+            <h2>Förtroende, moderering & säkerhet</h2>
+
+            <p style="max-width:720px;margin:auto;">
+                Enatist-plattformen styrs av tydliga gemenskapsstandarder.
+                Organisationsledning och moderatorer säkerställer respektfulla
+                diskussioner, transparent styrning och en säker miljö
+                för meningsfulla samtal och samarbete.
+            </p>
+
+        </div>
+    </section>
+
+
+    <footer>
+
+        <p>© 2026 Enat Sverige Forum [ E.S.F ]</p>
+
+        <p>
+            <a href="./privacy-policy.html">Integritetspolicy</a> •
+            <a href="./terms-conditions.html">Användarvillkor</a>
+        </p>
+
+    </footer>
+
+</body>
+
+</html>

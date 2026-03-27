@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instrumentpanel</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: #f9fafb;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #1f2937;
+        }
+
+        .container {
+            text-align: center;
+            padding: 2rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            max-width: 420px;
+            width: 90%;
+        }
+
+        h1 {
+            margin-bottom: 1.5rem;
+            color: #111827;
+        }
+
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3b82f6;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 2rem auto;
+        }
+
+        p {
+            color: #4b5563;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Välkommen tillbaka</h1>
+        <div class="loader"></div>
+        <p>Omdirigerar dig till din profil...</p>
+    </div>
+    <script type="module">
+        const supabase = window.supabase.createClient(
+            'https://jtbcqgjkvzgcjobfbtad.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0YmNxZ2prdnpnY2pvYmZidGFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1MzU0NTksImV4cCI6MjA2OTExMTQ1OX0.ogacm-3bmQI7WDgHZSI2r6jDOrDAGMfI7QtG0avYMTQ'
+        );
+        async function checkUserTypeAndRedirect() {
+            const { data: { user }, error: authError } = await supabase.auth.getUser();
+            if (authError || !user) {
+                window.location.href = '/';
+                return;
+            }
+            // 1. Kontrollera member_profiles
+            let { data: member, error: memberError } = await supabase
+                .from('member_profiles')
+                .select('username')
+                .eq('id', user.id)
+                .maybeSingle();   // ← säkrare än .single() när rad kanske inte finns
+            if (memberError) {
+                console.error("Fel vid kontroll av medlem:", memberError);
+            }
+            if (member?.username) {
+                window.location.href = `/members/profile.html?user=${encodeURIComponent(member.username)}`;
+                return;
+            }
+            // 2. Kontrollera enatist_profiles
+            let { data: enatist, error: enatistError } = await supabase
+                .from('enatist_profiles')
+                .select('username')
+                .eq('id', user.id)
+                .maybeSingle();
+            if (enatistError) {
+                console.error("Fel vid kontroll av Enatist:", enatistError);
+            }
+            if (enatist?.username) {
+                window.location.href = `/enatister/profile.html?user=${encodeURIComponent(enatist.username)}`;
+                return;
+            }
+            // Reserv – ingen profil hittades
+            alert("Ingen profil hittades för detta konto.\nVänligen slutför registreringen först.");
+            window.location.href = '/';   // eller '/choose-role.html' om du skapar en sådan sida
+        }
+        // Kör vid sidladdning
+        checkUserTypeAndRedirect();
+    </script>
+</body>
+
+</html>

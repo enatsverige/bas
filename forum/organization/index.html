@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../css/org-theme.css">
+    <title>Organisationsportal</title>
+    <style>
+        /* Reset & body styling */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: linear-gradient(135deg, #0f172a, #1e3a8a);
+            color: white;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Container */
+        .container {
+            text-align: center;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 50px 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 {
+            font-size: 28px;
+            margin-bottom: 20px;
+            color: #ffc200;
+        }
+
+        p {
+            margin-bottom: 40px;
+            font-size: 16px;
+            color: #ddd;
+        }
+
+        /* Links as buttons */
+        .link-btn {
+            display: inline-block;
+            background: #ffc334;
+            color: #0c2a55;
+            font-weight: bold;
+            text-decoration: none;
+            padding: 12px 28px;
+            border-radius: 6px;
+            margin: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .link-btn:hover {
+            background: #1d4ed8;
+            color: #fff;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+
+<body>
+    <a href="../index.html" class="home-icon" title="Gå till startsidan">
+        🏠
+    </a>
+
+    <div class="container">
+        <h1>Välkommen till Organisationsportalen</h1>
+        <p>Välj din roll för att fortsätta:</p>
+        <a href="./founder-login.html" class="link-btn">Grundare</a>
+        <a href="./leadership-login.html" class="link-btn">Ledning</a>
+    </div>
+</body>
+
+</html>
