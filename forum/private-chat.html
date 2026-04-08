@@ -245,7 +245,10 @@
   </div>
 
   <script>
-    const supabase = window.supabaseClient;
+    const sbClient = window.supabaseClient;
+    if (!sbClient) {
+      console.error("Supabase-klient saknas. Kontrollera ./js/supabase.js");
+    }
 
     const state = {
       currentUser: null,
@@ -350,18 +353,26 @@
     }
 
     async function getCurrentUser() {
-      const { data, error } = await supabase.auth.getUser();
-      if (error || !data?.user) {
-        window.location.href = "./login-member.html";
-        return null;
+      if (!sbClient) return null;
+
+      const { data, error } = await sbClient.auth.getUser();
+      if (!error && data?.user) {
+        return data.user;
       }
-      return data.user;
+
+      const fallbackUserId = sessionStorage.getItem("user_id");
+      if (fallbackUserId) {
+        return { id: fallbackUserId, email: "(sessionStorage)" };
+      }
+
+      window.location.href = "./login-member.html";
+      return null;
     }
 
     async function loadContacts() {
       const [{ data: members }, { data: enatists }] = await Promise.all([
-        supabase.from("member_profiles").select("id, username").order("username", { ascending: true }),
-        supabase.from("enatist_profiles").select("id, username").order("username", { ascending: true }),
+        sbClient.from("member_profiles").select("id, username").order("username", { ascending: true }),
+        sbClient.from("enatist_profiles").select("id, username").order("username", { ascending: true }),
       ]);
 
       const allUsers = [...(members || []), ...(enatists || [])]
@@ -388,14 +399,14 @@
     async function resolveRecipientByUsername(username) {
       if (!username) return null;
       const uname = username.trim();
-      let result = await supabase
+      let result = await sbClient
         .from("member_profiles")
         .select("id, username")
         .eq("username", uname)
         .maybeSingle();
 
       if (!result.data) {
-        result = await supabase
+        result = await sbClient
           .from("enatist_profiles")
           .select("id, username")
           .eq("username", uname)
@@ -420,7 +431,7 @@
         return;
       }
 
-      const { data, error } = await supabase
+      const { data, error } = await sbClient
         .from("private_messages")
         .select("id, sender_id, recipient_id, cipher_text, iv, salt, created_at")
         .or(
@@ -519,7 +530,7 @@
 
       const encrypted = await encryptMessage(text, state.secret);
 
-      const { error } = await supabase.from("private_messages").insert({
+      const { error } = await sbClient.from("private_messages").insert({
         sender_id: state.currentUser.id,
         recipient_id: state.recipientId,
         cipher_text: encrypted.cipher_text,
@@ -538,10 +549,13 @@
 
     async function init() {
       const user = await getCurrentUser();
-      if (!user) return;
+      if (!user) {
+        currentUserLabel.textContent = "Inte inloggad";
+        return;
+      }
 
       state.currentUser = user;
-      currentUserLabel.textContent = user.email || user.id;
+      currentUserLabel.textContent = user.email && user.email !== "(sessionStorage)" ? user.email : user.id;
 
       await loadContacts();
       setStatus("Redo. Välj mottagare och ange delad kod.");
