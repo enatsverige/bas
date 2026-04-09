@@ -175,6 +175,46 @@
       margin-top: 6px;
     }
 
+    .msg-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+
+    .mini-btn {
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 12px;
+      width: auto;
+      padding: 4px 8px;
+      border-radius: 999px;
+    }
+
+    .mini-btn.active {
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+
+    .reply-preview {
+      font-size: 11px;
+      color: var(--muted);
+      border-left: 3px solid var(--border);
+      padding-left: 8px;
+      margin-bottom: 6px;
+      opacity: 0.95;
+      white-space: pre-wrap;
+    }
+
+    .system-msg {
+      justify-self: center;
+      max-width: 90%;
+      background: rgba(255, 215, 0, 0.08);
+      border-color: rgba(255, 215, 0, 0.45);
+      text-align: center;
+    }
+
     .composer {
       border-top: 1px solid var(--border);
       padding: 14px;
@@ -182,6 +222,27 @@
       grid-template-columns: 1fr 120px;
       gap: 10px;
       background: rgba(0, 0, 0, 0.14);
+    }
+
+    .reply-bar {
+      grid-column: 1 / -1;
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 12px;
+      color: var(--muted);
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .reply-bar button {
+      width: auto;
+      padding: 4px 8px;
+      font-size: 12px;
+      border-radius: 999px;
     }
 
     .empty {
@@ -216,6 +277,7 @@
 
         <button id="startBtn">Starta / uppdatera konversation</button>
         <button id="refreshBtn" type="button">Uppdatera meddelanden</button>
+        <button id="resetCodeBtn" type="button">Glömt kod? Återställ konversation</button>
 
         <div id="status" class="status"></div>
 
@@ -238,6 +300,10 @@
       </div>
 
       <form id="composerForm" class="composer">
+        <div id="replyBar" class="reply-bar">
+          <span id="replyText">Svarar på meddelande…</span>
+          <button id="clearReplyBtn" type="button">Avbryt svar</button>
+        </div>
         <textarea id="messageInput" placeholder="Skriv krypterat meddelande..." required></textarea>
         <button id="sendBtn" type="submit">Skicka</button>
       </form>
@@ -256,12 +322,15 @@
       recipientUsername: "",
       secret: "",
       pollTimer: null,
+      conversationKeyVersion: 1,
+      replyToMessage: null,
     };
 
     const recipientInput = document.getElementById("recipient");
     const sharedSecretInput = document.getElementById("sharedSecret");
     const startBtn = document.getElementById("startBtn");
     const refreshBtn = document.getElementById("refreshBtn");
+    const resetCodeBtn = document.getElementById("resetCodeBtn");
     const statusEl = document.getElementById("status");
     const currentUserLabel = document.getElementById("currentUserLabel");
     const chatTitle = document.getElementById("chatTitle");
@@ -270,6 +339,9 @@
     const userListEl = document.getElementById("userList");
     const composerForm = document.getElementById("composerForm");
     const messageInput = document.getElementById("messageInput");
+    const replyBar = document.getElementById("replyBar");
+    const replyText = document.getElementById("replyText");
+    const clearReplyBtn = document.getElementById("clearReplyBtn");
 
     function setStatus(text, type = "ok") {
       statusEl.textContent = text;
@@ -426,17 +498,108 @@
       });
     }
 
+    function escapeHtml(str = "") {
+      return str
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll("\"", "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function setReplyTarget(messageObj) {
+      state.replyToMessage = messageObj;
+      if (!messageObj) {
+        replyBar.style.display = "none";
+        replyText.textContent = "";
+        return;
+      }
+      replyBar.style.display = "flex";
+      replyText.textContent = `Svarar på: ${messageObj.preview}`;
+    }
+
+    async function ensureConversationVersion() {
+      const pair = [state.currentUser.id, state.recipientId].sort();
+      const participant_a = pair[0];
+      const participant_b = pair[1];
+
+      const { data: existing } = await sbClient
+        .from("private_conversations")
+        .select("id, key_version")
+        .eq("participant_a", participant_a)
+        .eq("participant_b", participant_b)
+        .maybeSingle();
+
+      if (existing) {
+        state.conversationKeyVersion = existing.key_version || 1;
+        return;
+      }
+
+      const { data: created, error } = await sbClient
+        .from("private_conversations")
+        .insert({
+          participant_a,
+          participant_b,
+          key_version: 1,
+        })
+        .select("key_version")
+        .single();
+
+      if (error) {
+        setStatus(`Kunde inte initiera konversation: ${error.message}`, "error");
+        return;
+      }
+      state.conversationKeyVersion = created?.key_version || 1;
+    }
+
+    async function resetConversationCode() {
+      if (!state.currentUser || !state.recipientId) {
+        setStatus("Välj först en konversation innan återställning.", "error");
+        return;
+      }
+      const ok = window.confirm(
+        "Detta startar en ny krypteringsrunda. Gamla meddelanden blir oläsbara med ny kod. Fortsätta?"
+      );
+      if (!ok) return;
+
+      const pair = [state.currentUser.id, state.recipientId].sort();
+      const participant_a = pair[0];
+      const participant_b = pair[1];
+      const nextVersion = (state.conversationKeyVersion || 1) + 1;
+
+      const { error } = await sbClient
+        .from("private_conversations")
+        .update({ key_version: nextVersion })
+        .eq("participant_a", participant_a)
+        .eq("participant_b", participant_b);
+
+      if (error) {
+        setStatus(`Kunde inte återställa konversation: ${error.message}`, "error");
+        return;
+      }
+
+      state.conversationKeyVersion = nextVersion;
+      state.replyToMessage = null;
+      setReplyTarget(null);
+      messagesEl.innerHTML = "";
+      await loadMessages();
+      setStatus("Konversation återställd. Ange/byt till ny kod hos båda parter.", "ok");
+    }
+
     async function loadMessages() {
       if (!state.currentUser || !state.recipientId || !state.secret) {
         return;
       }
 
+      await ensureConversationVersion();
+
       const { data, error } = await sbClient
         .from("private_messages")
-        .select("id, sender_id, recipient_id, cipher_text, iv, salt, created_at")
+        .select("id, sender_id, recipient_id, cipher_text, iv, salt, created_at, reply_to_message_id, key_version")
         .or(
           `and(sender_id.eq.${state.currentUser.id},recipient_id.eq.${state.recipientId}),and(sender_id.eq.${state.recipientId},recipient_id.eq.${state.currentUser.id})`
         )
+        .eq("key_version", state.conversationKeyVersion)
         .order("created_at", { ascending: true })
         .limit(300);
 
@@ -446,11 +609,18 @@
       }
 
       if (!data || data.length === 0) {
-        messagesEl.innerHTML = '<div class="empty">Inga meddelanden ännu.</div>';
+        messagesEl.innerHTML = `
+          <div class="msg system-msg">
+            <div><strong>Enat Sverige</strong></div>
+            <div>Detta är en krypterad chatt. För enklare och snabbare dialog rekommenderar vi Telegram — med god säkerhet och bättre användarupplevelse.</div>
+          </div>
+          <div class="empty">Inga meddelanden ännu i den här kodversionen.</div>
+        `;
         return;
       }
 
-      const rendered = await Promise.all(
+      const messageMap = new Map();
+      const decoded = await Promise.all(
         data.map(async (msg) => {
           let plain = "[Kunde inte dekryptera – fel kod eller skadat meddelande]";
           try {
@@ -458,18 +628,63 @@
           } catch (_e) {
             // ignore and show fallback text
           }
-
-          const mine = msg.sender_id === state.currentUser.id;
-          return `
-            <div class="msg ${mine ? "mine" : ""}">
-              <div>${plain.replace(/</g, "&lt;")}</div>
-              <div class="msg-meta">${mine ? "Du" : `@${state.recipientUsername}`} • ${formatDate(msg.created_at)}</div>
-            </div>
-          `;
+          const entry = { ...msg, plain };
+          messageMap.set(msg.id, entry);
+          return entry;
         })
       );
 
-      messagesEl.innerHTML = rendered.join("");
+      const ids = decoded.map((m) => m.id);
+      let reactions = [];
+      if (ids.length) {
+        const { data: reactionRows } = await sbClient
+          .from("private_message_reactions")
+          .select("message_id, user_id, reaction")
+          .in("message_id", ids);
+        reactions = reactionRows || [];
+      }
+
+      const reactionMap = {};
+      for (const r of reactions) {
+        if (!reactionMap[r.message_id]) {
+          reactionMap[r.message_id] = {
+            up: 0,
+            down: 0,
+            my: null,
+          };
+        }
+        if (r.reaction === "up") reactionMap[r.message_id].up += 1;
+        if (r.reaction === "down") reactionMap[r.message_id].down += 1;
+        if (r.user_id === state.currentUser.id) reactionMap[r.message_id].my = r.reaction;
+      }
+
+      const rendered = decoded.map((msg) => {
+        const mine = msg.sender_id === state.currentUser.id;
+        const replyTo = msg.reply_to_message_id ? messageMap.get(msg.reply_to_message_id) : null;
+        const reactionInfo = reactionMap[msg.id] || { up: 0, down: 0, my: null };
+        const replyPreview = replyTo ? `<div class="reply-preview">↪ ${escapeHtml(replyTo.plain.slice(0, 120))}</div>` : "";
+
+        return `
+          <div class="msg ${mine ? "mine" : ""}" data-message-id="${msg.id}" data-plain="${escapeHtml(msg.plain.slice(0, 160))}">
+            ${replyPreview}
+            <div>${escapeHtml(msg.plain)}</div>
+            <div class="msg-meta">${mine ? "Du" : `@${state.recipientUsername}`} • ${formatDate(msg.created_at)}</div>
+            <div class="msg-actions">
+              <button class="mini-btn ${reactionInfo.my === "up" ? "active" : ""}" data-action="react-up" data-message-id="${msg.id}">👍 ${reactionInfo.up}</button>
+              <button class="mini-btn ${reactionInfo.my === "down" ? "active" : ""}" data-action="react-down" data-message-id="${msg.id}">👎 ${reactionInfo.down}</button>
+              <button class="mini-btn" data-action="reply" data-message-id="${msg.id}">Svara</button>
+            </div>
+          </div>
+        `;
+      });
+
+      messagesEl.innerHTML = `
+        <div class="msg system-msg">
+          <div><strong>Enat Sverige</strong></div>
+          <div>Detta är en krypterad chatt. För enklare och snabbare dialog rekommenderar vi Telegram — med god säkerhet och bättre användarupplevelse.</div>
+        </div>
+        ${rendered.join("")}
+      `;
       messagesEl.scrollTop = messagesEl.scrollHeight;
     }
 
@@ -506,15 +721,66 @@
       state.recipientId = recipient.id;
       state.recipientUsername = recipient.username;
       state.secret = secret;
+      setReplyTarget(null);
 
       chatTitle.textContent = `Chatt med @${recipient.username}`;
       chatMeta.textContent = "End-to-end-liknande kryptering i klienten (delad kod krävs för läsning).";
 
+      await ensureConversationVersion();
       await loadMessages();
       setStatus(`Konversation aktiv med @${recipient.username}.`, "ok");
 
       if (state.pollTimer) clearInterval(state.pollTimer);
       state.pollTimer = setInterval(loadMessages, 6000);
+    }
+
+    async function toggleReaction(messageId, reaction) {
+      const { data: existing } = await sbClient
+        .from("private_message_reactions")
+        .select("id, reaction")
+        .eq("message_id", messageId)
+        .eq("user_id", state.currentUser.id)
+        .maybeSingle();
+
+      if (existing?.reaction === reaction) {
+        await sbClient
+          .from("private_message_reactions")
+          .delete()
+          .eq("id", existing.id);
+      } else if (existing) {
+        await sbClient
+          .from("private_message_reactions")
+          .update({ reaction })
+          .eq("id", existing.id);
+      } else {
+        await sbClient
+          .from("private_message_reactions")
+          .insert({
+            message_id: messageId,
+            user_id: state.currentUser.id,
+            reaction,
+          });
+      }
+      await loadMessages();
+    }
+
+    function handleMessageActions(event) {
+      const button = event.target.closest("button[data-action]");
+      if (!button) return;
+
+      const action = button.dataset.action;
+      const messageId = Number(button.dataset.messageId);
+      if (!messageId) return;
+
+      if (action === "react-up") {
+        toggleReaction(messageId, "up");
+      } else if (action === "react-down") {
+        toggleReaction(messageId, "down");
+      } else if (action === "reply") {
+        const messageText = button.closest(".msg")?.dataset?.plain || "Meddelande";
+        setReplyTarget({ id: messageId, preview: messageText.slice(0, 120) });
+        messageInput.focus();
+      }
     }
 
     async function sendMessage(event) {
@@ -536,6 +802,8 @@
         cipher_text: encrypted.cipher_text,
         iv: encrypted.iv,
         salt: encrypted.salt,
+        key_version: state.conversationKeyVersion,
+        reply_to_message_id: state.replyToMessage?.id || null,
       });
 
       if (error) {
@@ -544,6 +812,7 @@
       }
 
       messageInput.value = "";
+      setReplyTarget(null);
       await loadMessages();
     }
 
@@ -563,6 +832,15 @@
 
     startBtn.addEventListener("click", startConversation);
     refreshBtn.addEventListener("click", loadMessages);
+    resetCodeBtn.addEventListener("click", resetConversationCode);
+    clearReplyBtn.addEventListener("click", () => setReplyTarget(null));
+    messagesEl.addEventListener("click", handleMessageActions);
+    messageInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        composerForm.requestSubmit();
+      }
+    });
     composerForm.addEventListener("submit", sendMessage);
 
     init();
