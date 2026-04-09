@@ -588,10 +588,14 @@
       setStatus("Konversation återställd. Ange/byt till ny kod hos båda parter.", "ok");
     }
 
-    async function loadMessages() {
+    async function loadMessages(options = {}) {
+      const { forceBottom = false } = options;
       if (!state.currentUser || !state.recipientId || !state.secret) {
         return;
       }
+
+      const wasNearBottom =
+        messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 80;
 
       await ensureConversationVersion();
 
@@ -687,7 +691,10 @@
         </div>
         ${rendered.join("")}
       `;
-      messagesEl.scrollTop = messagesEl.scrollHeight;
+
+      if (forceBottom || wasNearBottom) {
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+      }
     }
 
     async function startConversation() {
@@ -729,7 +736,7 @@
       chatMeta.textContent = "End-to-end-liknande kryptering i klienten (delad kod krävs för läsning).";
 
       await ensureConversationVersion();
-      await loadMessages();
+      await loadMessages({ forceBottom: true });
       setStatus(`Konversation aktiv med @${recipient.username}.`, "ok");
 
       if (state.pollTimer) clearInterval(state.pollTimer);
@@ -763,7 +770,7 @@
             reaction,
           });
       }
-      await loadMessages();
+      await loadMessages({ forceBottom: true });
     }
 
     function handleMessageActions(event) {
