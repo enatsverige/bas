@@ -1,45 +1,849 @@
 <!DOCTYPE html>
-
-<html lang="en">
+<html lang="sv">
 <head>
-  <meta charset="UTF-8">
-  <title>Simple Background Page</title>
-
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privat Krypterad Chatt</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./js/supabase.js"></script>
   <style>
+    :root {
+      --bg: #0a1d37;
+      --panel: #11294a;
+      --panel-2: #0e2442;
+      --text: #e0e0ff;
+      --muted: #a0c0ff;
+      --gold: #ffd700;
+      --orange: #ff8c00;
+      --border: #3a5a8f;
+      --ok: #4caf50;
+      --error: #ff6b6b;
+    }
+
+    * { box-sizing: border-box; }
+
     body {
       margin: 0;
-      height: 100vh;
-      background: linear-gradient(135deg, #1e3c72, #2a5298);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-family: Arial, sans-serif;
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: linear-gradient(180deg, #06152b, #0a1d37);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 20px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      overflow: hidden;
+    }
+
+    .header {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(0, 0, 0, 0.18);
+    }
+
+    .header h1, .header h2 {
+      margin: 0;
+      font-size: 20px;
+      color: var(--gold);
+    }
+
+    .panel-body { padding: 16px; }
+
+    label {
+      display: block;
+      font-size: 13px;
+      color: var(--muted);
+      margin: 0 0 6px;
+    }
+
+    input, textarea, button {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      color: var(--text);
+      padding: 10px 12px;
+      font: inherit;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 72px;
+    }
+
+    input:focus, textarea:focus {
+      outline: 2px solid rgba(255, 215, 0, 0.28);
+      border-color: var(--gold);
+    }
+
+    button {
+      background: var(--orange);
       color: white;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
     }
 
-    .content {
+    button:hover { filter: brightness(1.05); }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .stack { display: grid; gap: 12px; }
+
+    .small {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .status {
+      margin-top: 10px;
+      font-size: 13px;
+    }
+
+    .status.ok { color: var(--ok); }
+    .status.error { color: var(--error); }
+
+    .user-list {
+      margin-top: 10px;
+      border-top: 1px solid var(--border);
+      padding-top: 10px;
+      max-height: 220px;
+      overflow: auto;
+      display: grid;
+      gap: 8px;
+    }
+
+    .user-chip {
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: rgba(0, 0, 0, 0.14);
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .chat-area {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      min-height: 78vh;
+    }
+
+    .meta-line {
+      font-size: 14px;
+      color: var(--muted);
+      margin-top: 8px;
+    }
+
+    .messages {
+      padding: 16px;
+      overflow: auto;
+      display: grid;
+      gap: 10px;
+      align-content: start;
+      background: linear-gradient(180deg, rgba(0, 0, 0, 0.08), transparent);
+    }
+
+    .msg {
+      max-width: 75%;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: #11325c;
+    }
+
+    .msg.mine {
+      justify-self: end;
+      background: #23406a;
+      border-color: #547fb6;
+    }
+
+    .msg-meta {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    .msg-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+
+    .mini-btn {
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 12px;
+      width: auto;
+      padding: 4px 8px;
+      border-radius: 999px;
+    }
+
+    .mini-btn.active {
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+
+    .reply-preview {
+      font-size: 11px;
+      color: var(--muted);
+      border-left: 3px solid var(--border);
+      padding-left: 8px;
+      margin-bottom: 6px;
+      opacity: 0.95;
+      white-space: pre-wrap;
+    }
+
+    .system-msg {
+      justify-self: center;
+      max-width: 90%;
+      background: rgba(255, 215, 0, 0.08);
+      border-color: rgba(255, 215, 0, 0.45);
       text-align: center;
-      background: rgba(0, 0, 0, 0.4);
+    }
+
+    .composer {
+      border-top: 1px solid var(--border);
+      padding: 14px;
+      display: grid;
+      grid-template-columns: 1fr 120px;
+      gap: 10px;
+      background: rgba(0, 0, 0, 0.14);
+    }
+
+    .reply-bar {
+      grid-column: 1 / -1;
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 12px;
+      color: var(--muted);
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .reply-bar button {
+      width: auto;
+      padding: 4px 8px;
+      font-size: 12px;
+      border-radius: 999px;
+    }
+
+    .empty {
+      color: var(--muted);
+      text-align: center;
       padding: 30px;
-      border-radius: 15px;
     }
 
-    h1 {
-      margin-bottom: 10px;
-      font-size: 2.5em;
-    }
-
-    p {
-      font-size: 1.2em;
+    @media (max-width: 960px) {
+      .wrap { grid-template-columns: 1fr; }
+      .chat-area { min-height: 60vh; }
     }
   </style>
-
 </head>
-
 <body>
-  <div class="content">
-    <h1>Hello World</h1>
-    <p>This is your first clean background page.</p>
+  <div class="wrap">
+    <section class="card">
+      <div class="header">
+        <h1>Privat krypterad chatt</h1>
+      </div>
+      <div class="panel-body stack">
+        <div>
+          <label for="recipient">Mottagarens användarnamn</label>
+          <input id="recipient" placeholder="t.ex. anna" autocomplete="off" />
+        </div>
+
+        <div>
+          <label for="sharedSecret">Delad hemlig kod (lösenfras)</label>
+          <input id="sharedSecret" type="password" placeholder="Samma kod hos båda" autocomplete="off" />
+          <div class="small">Meddelanden krypteras i din webbläsare innan de sparas i Supabase.</div>
+        </div>
+
+        <button id="startBtn">Starta / uppdatera konversation</button>
+        <button id="refreshBtn" type="button">Uppdatera meddelanden</button>
+        <button id="resetCodeBtn" type="button">Glömt kod? Återställ konversation</button>
+
+        <div id="status" class="status"></div>
+
+        <div class="small">
+          Inloggad användare: <strong id="currentUserLabel">Laddar...</strong>
+        </div>
+
+        <div class="user-list" id="userList"></div>
+      </div>
+    </section>
+
+    <section class="card chat-area">
+      <div class="header">
+        <h2 id="chatTitle">Ingen konversation vald</h2>
+        <div id="chatMeta" class="meta-line">Välj mottagare och hemlig kod för att läsa/skicka.</div>
+      </div>
+
+      <div id="messages" class="messages">
+        <div class="empty">Inga meddelanden ännu.</div>
+      </div>
+
+      <form id="composerForm" class="composer">
+        <div id="replyBar" class="reply-bar">
+          <span id="replyText">Svarar på meddelande…</span>
+          <button id="clearReplyBtn" type="button">Avbryt svar</button>
+        </div>
+        <textarea id="messageInput" placeholder="Skriv krypterat meddelande..." required></textarea>
+        <button id="sendBtn" type="submit">Skicka</button>
+      </form>
+    </section>
   </div>
+
+  <script>
+    const sbClient = window.supabaseClient;
+    if (!sbClient) {
+      console.error("Supabase-klient saknas. Kontrollera ./js/supabase.js");
+    }
+
+    const state = {
+      currentUser: null,
+      recipientId: null,
+      recipientUsername: "",
+      secret: "",
+      pollTimer: null,
+      conversationKeyVersion: 1,
+      replyToMessage: null,
+    };
+
+    const recipientInput = document.getElementById("recipient");
+    const sharedSecretInput = document.getElementById("sharedSecret");
+    const startBtn = document.getElementById("startBtn");
+    const refreshBtn = document.getElementById("refreshBtn");
+    const resetCodeBtn = document.getElementById("resetCodeBtn");
+    const statusEl = document.getElementById("status");
+    const currentUserLabel = document.getElementById("currentUserLabel");
+    const chatTitle = document.getElementById("chatTitle");
+    const chatMeta = document.getElementById("chatMeta");
+    const messagesEl = document.getElementById("messages");
+    const userListEl = document.getElementById("userList");
+    const composerForm = document.getElementById("composerForm");
+    const messageInput = document.getElementById("messageInput");
+    const replyBar = document.getElementById("replyBar");
+    const replyText = document.getElementById("replyText");
+    const clearReplyBtn = document.getElementById("clearReplyBtn");
+
+    function setStatus(text, type = "ok") {
+      statusEl.textContent = text;
+      statusEl.className = `status ${type}`;
+    }
+
+    function toBase64(uint8Array) {
+      let binary = "";
+      for (let i = 0; i < uint8Array.length; i++) {
+        binary += String.fromCharCode(uint8Array[i]);
+      }
+      return btoa(binary);
+    }
+
+    function fromBase64(base64) {
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      return bytes;
+    }
+
+    async function deriveAesKey(secret, salt) {
+      const encoder = new TextEncoder();
+      const keyMaterial = await crypto.subtle.importKey(
+        "raw",
+        encoder.encode(secret),
+        "PBKDF2",
+        false,
+        ["deriveKey"]
+      );
+
+      return crypto.subtle.deriveKey(
+        {
+          name: "PBKDF2",
+          salt,
+          iterations: 200000,
+          hash: "SHA-256",
+        },
+        keyMaterial,
+        {
+          name: "AES-GCM",
+          length: 256,
+        },
+        false,
+        ["encrypt", "decrypt"]
+      );
+    }
+
+    async function encryptMessage(plainText, secret) {
+      const encoder = new TextEncoder();
+      const salt = crypto.getRandomValues(new Uint8Array(16));
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      const key = await deriveAesKey(secret, salt);
+      const encrypted = await crypto.subtle.encrypt(
+        { name: "AES-GCM", iv },
+        key,
+        encoder.encode(plainText)
+      );
+
+      return {
+        cipher_text: toBase64(new Uint8Array(encrypted)),
+        iv: toBase64(iv),
+        salt: toBase64(salt),
+      };
+    }
+
+    async function decryptMessage(payload, secret) {
+      const decoder = new TextDecoder();
+      const salt = fromBase64(payload.salt);
+      const iv = fromBase64(payload.iv);
+      const cipherBytes = fromBase64(payload.cipher_text);
+      const key = await deriveAesKey(secret, salt);
+      const plainBuffer = await crypto.subtle.decrypt(
+        { name: "AES-GCM", iv },
+        key,
+        cipherBytes
+      );
+      return decoder.decode(plainBuffer);
+    }
+
+    async function getCurrentUser() {
+      if (!sbClient) return null;
+
+      const { data, error } = await sbClient.auth.getUser();
+      if (!error && data?.user) {
+        return data.user;
+      }
+
+      const fallbackUserId = sessionStorage.getItem("user_id");
+      if (fallbackUserId) {
+        return { id: fallbackUserId, email: "(sessionStorage)" };
+      }
+
+      window.location.href = "./login-member.html";
+      return null;
+    }
+
+    async function loadContacts() {
+      const [{ data: members }, { data: enatists }] = await Promise.all([
+        sbClient.from("member_profiles").select("id, username").order("username", { ascending: true }),
+        sbClient.from("enatist_profiles").select("id, username").order("username", { ascending: true }),
+      ]);
+
+      const allUsers = [...(members || []), ...(enatists || [])]
+        .filter((u) => u.id !== state.currentUser.id)
+        .filter((u, index, arr) => index === arr.findIndex((x) => x.id === u.id))
+        .slice(0, 80);
+
+      userListEl.innerHTML = allUsers.length
+        ? allUsers
+            .map((u) => `<div class="user-chip" data-id="${u.id}" data-username="${u.username}">@${u.username}</div>`)
+            .join("")
+        : '<div class="small">Inga användare hittades.</div>';
+
+      userListEl.querySelectorAll(".user-chip").forEach((chip) => {
+        chip.addEventListener("click", () => {
+          recipientInput.value = chip.dataset.username;
+          state.recipientId = chip.dataset.id;
+          state.recipientUsername = chip.dataset.username;
+          setStatus(`Mottagare vald: @${state.recipientUsername}`);
+        });
+      });
+    }
+
+    async function resolveRecipientByUsername(username) {
+      if (!username) return null;
+      const uname = username.trim();
+      let result = await sbClient
+        .from("member_profiles")
+        .select("id, username")
+        .eq("username", uname)
+        .maybeSingle();
+
+      if (!result.data) {
+        result = await sbClient
+          .from("enatist_profiles")
+          .select("id, username")
+          .eq("username", uname)
+          .maybeSingle();
+      }
+      return result.data || null;
+    }
+
+    function formatDate(isoDate) {
+      const d = new Date(isoDate);
+      return d.toLocaleString("sv-SE", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    }
+
+    function escapeHtml(str = "") {
+      return str
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll("\"", "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function setReplyTarget(messageObj) {
+      state.replyToMessage = messageObj;
+      if (!messageObj) {
+        replyBar.style.display = "none";
+        replyText.textContent = "";
+        return;
+      }
+      replyBar.style.display = "flex";
+      replyText.textContent = `Svarar på: ${messageObj.preview}`;
+    }
+
+    async function ensureConversationVersion() {
+      const pair = [state.currentUser.id, state.recipientId].sort();
+      const participant_a = pair[0];
+      const participant_b = pair[1];
+
+      const { data: existing } = await sbClient
+        .from("private_conversations")
+        .select("id, key_version")
+        .eq("participant_a", participant_a)
+        .eq("participant_b", participant_b)
+        .maybeSingle();
+
+      if (existing) {
+        state.conversationKeyVersion = existing.key_version || 1;
+        return;
+      }
+
+      const { data: created, error } = await sbClient
+        .from("private_conversations")
+        .insert({
+          participant_a,
+          participant_b,
+          key_version: 1,
+        })
+        .select("key_version")
+        .single();
+
+      if (error) {
+        setStatus(`Kunde inte initiera konversation: ${error.message}`, "error");
+        return;
+      }
+      state.conversationKeyVersion = created?.key_version || 1;
+    }
+
+    async function resetConversationCode() {
+      if (!state.currentUser || !state.recipientId) {
+        setStatus("Välj först en konversation innan återställning.", "error");
+        return;
+      }
+      const ok = window.confirm(
+        "Detta startar en ny krypteringsrunda. Gamla meddelanden blir oläsbara med ny kod. Fortsätta?"
+      );
+      if (!ok) return;
+
+      const pair = [state.currentUser.id, state.recipientId].sort();
+      const participant_a = pair[0];
+      const participant_b = pair[1];
+      const nextVersion = (state.conversationKeyVersion || 1) + 1;
+
+      const { error } = await sbClient
+        .from("private_conversations")
+        .update({ key_version: nextVersion })
+        .eq("participant_a", participant_a)
+        .eq("participant_b", participant_b);
+
+      if (error) {
+        setStatus(`Kunde inte återställa konversation: ${error.message}`, "error");
+        return;
+      }
+
+      state.conversationKeyVersion = nextVersion;
+      state.replyToMessage = null;
+      setReplyTarget(null);
+      messagesEl.innerHTML = "";
+      await loadMessages();
+      setStatus("Konversation återställd. Ange/byt till ny kod hos båda parter.", "ok");
+    }
+
+    async function loadMessages() {
+      if (!state.currentUser || !state.recipientId || !state.secret) {
+        return;
+      }
+
+      await ensureConversationVersion();
+
+      const { data, error } = await sbClient
+        .from("private_messages")
+        .select("id, sender_id, recipient_id, cipher_text, iv, salt, created_at, reply_to_message_id, key_version")
+        .or(
+          `and(sender_id.eq.${state.currentUser.id},recipient_id.eq.${state.recipientId}),and(sender_id.eq.${state.recipientId},recipient_id.eq.${state.currentUser.id})`
+        )
+        .eq("key_version", state.conversationKeyVersion)
+        .order("created_at", { ascending: true })
+        .limit(300);
+
+      if (error) {
+        setStatus(`Kunde inte hämta meddelanden: ${error.message}`, "error");
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        messagesEl.innerHTML = `
+          <div class="msg system-msg">
+            <div><strong>Enat Sverige</strong></div>
+            <div>Detta är en krypterad chatt. För enklare och snabbare dialog rekommenderar vi Telegram — med god säkerhet och bättre användarupplevelse.</div>
+          </div>
+          <div class="empty">Inga meddelanden ännu i den här kodversionen.</div>
+        `;
+        return;
+      }
+
+      const messageMap = new Map();
+      const decoded = await Promise.all(
+        data.map(async (msg) => {
+          let plain = "[Kunde inte dekryptera – fel kod eller skadat meddelande]";
+          try {
+            plain = await decryptMessage(msg, state.secret);
+          } catch (_e) {
+            // ignore and show fallback text
+          }
+          const entry = { ...msg, plain };
+          messageMap.set(msg.id, entry);
+          return entry;
+        })
+      );
+
+      const ids = decoded.map((m) => m.id);
+      let reactions = [];
+      if (ids.length) {
+        const { data: reactionRows } = await sbClient
+          .from("private_message_reactions")
+          .select("message_id, user_id, reaction")
+          .in("message_id", ids);
+        reactions = reactionRows || [];
+      }
+
+      const reactionMap = {};
+      for (const r of reactions) {
+        if (!reactionMap[r.message_id]) {
+          reactionMap[r.message_id] = {
+            up: 0,
+            down: 0,
+            my: null,
+          };
+        }
+        if (r.reaction === "up") reactionMap[r.message_id].up += 1;
+        if (r.reaction === "down") reactionMap[r.message_id].down += 1;
+        if (r.user_id === state.currentUser.id) reactionMap[r.message_id].my = r.reaction;
+      }
+
+      const rendered = decoded.map((msg) => {
+        const mine = msg.sender_id === state.currentUser.id;
+        const replyTo = msg.reply_to_message_id ? messageMap.get(msg.reply_to_message_id) : null;
+        const reactionInfo = reactionMap[msg.id] || { up: 0, down: 0, my: null };
+        const replyPreview = replyTo ? `<div class="reply-preview">↪ ${escapeHtml(replyTo.plain.slice(0, 120))}</div>` : "";
+
+        return `
+          <div class="msg ${mine ? "mine" : ""}" data-message-id="${msg.id}" data-plain="${escapeHtml(msg.plain.slice(0, 160))}">
+            ${replyPreview}
+            <div>${escapeHtml(msg.plain)}</div>
+            <div class="msg-meta">${mine ? "Du" : `@${state.recipientUsername}`} • ${formatDate(msg.created_at)}</div>
+            <div class="msg-actions">
+              <button class="mini-btn ${reactionInfo.my === "up" ? "active" : ""}" data-action="react-up" data-message-id="${msg.id}">👍 ${reactionInfo.up}</button>
+              <button class="mini-btn ${reactionInfo.my === "down" ? "active" : ""}" data-action="react-down" data-message-id="${msg.id}">👎 ${reactionInfo.down}</button>
+              <button class="mini-btn" data-action="reply" data-message-id="${msg.id}">Svara</button>
+            </div>
+          </div>
+        `;
+      });
+
+      messagesEl.innerHTML = `
+        <div class="msg system-msg">
+          <div><strong>Enat Sverige</strong></div>
+          <div>Detta är en krypterad chatt. För enklare och snabbare dialog rekommenderar vi Telegram — med god säkerhet och bättre användarupplevelse.</div>
+        </div>
+        ${rendered.join("")}
+      `;
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    async function startConversation() {
+      const recipientUsername = recipientInput.value.trim();
+      const secret = sharedSecretInput.value;
+
+      if (!recipientUsername) {
+        setStatus("Skriv mottagarens användarnamn.", "error");
+        return;
+      }
+      if (!secret || secret.length < 6) {
+        setStatus("Ange en hemlig kod med minst 6 tecken.", "error");
+        return;
+      }
+
+      let recipient = null;
+      if (state.recipientUsername === recipientUsername && state.recipientId) {
+        recipient = { id: state.recipientId, username: state.recipientUsername };
+      } else {
+        recipient = await resolveRecipientByUsername(recipientUsername);
+      }
+
+      if (!recipient) {
+        setStatus("Kunde inte hitta användaren. Kontrollera användarnamn.", "error");
+        return;
+      }
+
+      if (recipient.id === state.currentUser.id) {
+        setStatus("Du kan inte skicka till dig själv.", "error");
+        return;
+      }
+
+      state.recipientId = recipient.id;
+      state.recipientUsername = recipient.username;
+      state.secret = secret;
+      setReplyTarget(null);
+
+      chatTitle.textContent = `Chatt med @${recipient.username}`;
+      chatMeta.textContent = "End-to-end-liknande kryptering i klienten (delad kod krävs för läsning).";
+
+      await ensureConversationVersion();
+      await loadMessages();
+      setStatus(`Konversation aktiv med @${recipient.username}.`, "ok");
+
+      if (state.pollTimer) clearInterval(state.pollTimer);
+      state.pollTimer = setInterval(loadMessages, 6000);
+    }
+
+    async function toggleReaction(messageId, reaction) {
+      const { data: existing } = await sbClient
+        .from("private_message_reactions")
+        .select("id, reaction")
+        .eq("message_id", messageId)
+        .eq("user_id", state.currentUser.id)
+        .maybeSingle();
+
+      if (existing?.reaction === reaction) {
+        await sbClient
+          .from("private_message_reactions")
+          .delete()
+          .eq("id", existing.id);
+      } else if (existing) {
+        await sbClient
+          .from("private_message_reactions")
+          .update({ reaction })
+          .eq("id", existing.id);
+      } else {
+        await sbClient
+          .from("private_message_reactions")
+          .insert({
+            message_id: messageId,
+            user_id: state.currentUser.id,
+            reaction,
+          });
+      }
+      await loadMessages();
+    }
+
+    function handleMessageActions(event) {
+      const button = event.target.closest("button[data-action]");
+      if (!button) return;
+
+      const action = button.dataset.action;
+      const messageId = Number(button.dataset.messageId);
+      if (!messageId) return;
+
+      if (action === "react-up") {
+        toggleReaction(messageId, "up");
+      } else if (action === "react-down") {
+        toggleReaction(messageId, "down");
+      } else if (action === "reply") {
+        const messageText = button.closest(".msg")?.dataset?.plain || "Meddelande";
+        setReplyTarget({ id: messageId, preview: messageText.slice(0, 120) });
+        messageInput.focus();
+      }
+    }
+
+    async function sendMessage(event) {
+      event.preventDefault();
+
+      const text = messageInput.value.trim();
+      if (!text) return;
+
+      if (!state.recipientId || !state.secret) {
+        setStatus("Starta först en konversation med mottagare + kod.", "error");
+        return;
+      }
+
+      const encrypted = await encryptMessage(text, state.secret);
+
+      const { error } = await sbClient.from("private_messages").insert({
+        sender_id: state.currentUser.id,
+        recipient_id: state.recipientId,
+        cipher_text: encrypted.cipher_text,
+        iv: encrypted.iv,
+        salt: encrypted.salt,
+        key_version: state.conversationKeyVersion,
+        reply_to_message_id: state.replyToMessage?.id || null,
+      });
+
+      if (error) {
+        setStatus(`Kunde inte skicka: ${error.message}`, "error");
+        return;
+      }
+
+      messageInput.value = "";
+      setReplyTarget(null);
+      await loadMessages();
+    }
+
+    async function init() {
+      const user = await getCurrentUser();
+      if (!user) {
+        currentUserLabel.textContent = "Inte inloggad";
+        return;
+      }
+
+      state.currentUser = user;
+      currentUserLabel.textContent = user.email && user.email !== "(sessionStorage)" ? user.email : user.id;
+
+      await loadContacts();
+      setStatus("Redo. Välj mottagare och ange delad kod.");
+    }
+
+    startBtn.addEventListener("click", startConversation);
+    refreshBtn.addEventListener("click", loadMessages);
+    resetCodeBtn.addEventListener("click", resetConversationCode);
+    clearReplyBtn.addEventListener("click", () => setReplyTarget(null));
+    messagesEl.addEventListener("click", handleMessageActions);
+    messageInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        composerForm.requestSubmit();
+      }
+    });
+    composerForm.addEventListener("submit", sendMessage);
+
+    init();
+  </script>
 </body>
 </html>
