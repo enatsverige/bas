@@ -137,7 +137,8 @@
     .chat-area {
       display: grid;
       grid-template-rows: auto 1fr auto;
-      min-height: 78vh;
+      height: 78vh;
+      overflow: hidden;
     }
 
     .meta-line {
@@ -149,6 +150,7 @@
     .messages {
       padding: 16px;
       overflow: auto;
+      min-height: 0;
       display: grid;
       gap: 10px;
       align-content: start;
@@ -253,7 +255,7 @@
 
     @media (max-width: 960px) {
       .wrap { grid-template-columns: 1fr; }
-      .chat-area { min-height: 60vh; }
+      .chat-area { height: 60vh; }
     }
   </style>
 </head>
