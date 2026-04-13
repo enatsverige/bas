@@ -959,11 +959,11 @@
             const badgeText = document.getElementById("badgeText");
             if (profile.badge) {
                 let badgePath = "";
-                if (profile.badge === "Brown") badgePath = "../images/brown.png";
-                if (profile.badge === "Silver") badgePath = "../images/silver.png";
-                if (profile.badge === "Gold") badgePath = "../images/gold.png";
-                if (profile.badge === "Diamond") badgePath = "../images/diamond.png";
-                if (profile.badge === "Platinum") badgePath = "../images/platinum.png";
+                if (profile.badge === "Brown") badgePath = "./images/brown.png";
+                if (profile.badge === "Silver") badgePath = "./images/silver.png";
+                if (profile.badge === "Gold") badgePath = "./images/gold.png";
+                if (profile.badge === "Diamond") badgePath = "./images/diamond.png";
+                if (profile.badge === "Platinum") badgePath = "./images/platinum.png";
                 badgeImg.src = badgePath;
                 badgeText.textContent = profile.badge;
             } else {
